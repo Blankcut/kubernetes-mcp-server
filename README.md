@@ -1,5 +1,7 @@
 
-![Untitled design (5)](https://github.com/user-attachments/assets/c036de6e-e87b-4728-b970-1e8c6da859a1)
+
+![Untitled design (10)](https://github.com/user-attachments/assets/5248481c-ce31-4e16-84d6-911942491ea9)
+
 
 # Claude Kubernetes MCP Server
 
