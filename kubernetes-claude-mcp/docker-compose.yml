@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  mcp-server:
+    container_name: claude-mcp-server
+    image: claude-mcp-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - KUBECONFIG=/app/.kube/config
+      - LOG_LEVEL=debug
+      - AWS_REGION=us-east-1
+      - AWS_PROFILE=default
+    volumes:
+      - ~/.kube/config:/app/.kube/config
+      - ./config.yaml:/app/config.yaml
+      - ~/.aws:/home/mcp/.aws
+    restart: unless-stopped

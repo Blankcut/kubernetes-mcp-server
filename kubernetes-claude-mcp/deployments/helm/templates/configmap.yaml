@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubernetes-claude-mcp.fullname" . }}-config
+  labels:
+    {{- include "kubernetes-claude-mcp.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    server:
+      address: "{{ .Values.config.server.address }}"
+      readTimeout: {{ .Values.config.server.readTimeout }}
+      writeTimeout: {{ .Values.config.server.writeTimeout }}
+    kubernetes:
+      kubeconfig: ""
+      inCluster: {{ .Values.config.kubernetes.inCluster }}
+      defaultNamespace: "{{ .Values.config.kubernetes.defaultNamespace }}"
+    argocd:
+      url: "{{ .Values.config.argocd.url }}"
+      insecure: {{ .Values.config.argocd.insecure }}
+    gitlab:
+      url: "{{ .Values.config.gitlab.url }}"
+      apiVersion: "{{ .Values.config.gitlab.apiVersion }}"
+    claude:
+      baseURL: "{{ .Values.config.claude.baseURL }}"
+      modelID: "{{ .Values.config.claude.modelID }}"
+      maxTokens: {{ .Values.config.claude.maxTokens }}
+      temperature: {{ .Values.config.claude.temperature }}

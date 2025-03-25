@@ -13,6 +13,48 @@ bin-release/
 *.ipa
 *.apk
 
-# Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
-# should NOT be excluded as they contain compiler settings and other important
-# information for Eclipse / Flash Builder.
+# Project files
+.project
+*.actionScriptProperties
+*.flexProperties
+*.fxp
+*.fxpl
+
+# Go build artifacts
+*.exe
+*.test
+*.out
+
+# Dependency directories
+vendor/
+coverage.out
+
+# IDE/editor config
+.vscode/
+.idea/
+*.iml
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker
+*.env
+docker-compose.override.yml
+
+# Kubernetes
+kubeconfig
+*.kube/
+
+# Helm
+*.tgz
+charts/
+
+# Local config
+config.yaml
+
+# Ignore postman environment files
+*.postman_environment.json
