@@ -1,3 +1,6 @@
+
+![Untitled design (5)](https://github.com/user-attachments/assets/c036de6e-e87b-4728-b970-1e8c6da859a1)
+
 # Claude Kubernetes MCP Server
 
 This repository contains the Claude Kubernetes MCP (Model Control Plane) server, built in Go. The server integrates with ArgoCD, GitLab, Claude AI, and Kubernetes to enable advanced control and automation of Kubernetes environments.
