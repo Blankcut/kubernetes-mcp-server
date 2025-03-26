@@ -76,7 +76,7 @@ kubernetes:
   defaultNamespace: "default"
 
 argocd:
-  url: "http://argocd.blankcut.com:30080"
+  url: "http://example.argocd.com"
   authToken: ""
   username: "${ARGOCD_USERNAME}"
   password: "${ARGOCD_PASSWORD}"
