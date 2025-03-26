@@ -1,0 +1,170 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Kubernetes Claude MCP - AI-powered GitOps with Claude" 
+  description="The official documentation for Kubernetes Claude MCP Server, integrating Claude AI with Kubernetes, ArgoCD, and GitLab">
+  
+  <!-- Hero Section -->
+  <section class="py-20 px-4 bg-gradient-to-b from-secondary-200 to-secondary-100">
+    <div class="container mx-auto max-w-5xl">
+      <div class="flex flex-col items-center text-center">
+        <img src="/images/logo.svg" alt="Kubernetes Claude MCP Logo" class="w-48 h-48 mb-6">
+        <h1 class="text-5xl font-bold tracking-tight mb-6 text-primary-600">
+          Kubernetes Claude MCP
+        </h1>
+        <p class="text-xl text-slate-700 mb-8 max-w-2xl">
+          Model Context Protocol server for Kubernetes, integrating Claude AI with ArgoCD and GitLab for advanced GitOps workflows.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <a href="/docs/introduction" class="btn bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-md">
+            Get Started
+          </a>
+          <a href="https://github.com/blankcut/kubernetes-mcp-server" class="btn bg-secondary-200 hover:bg-secondary-300 text-primary-700 font-medium py-2 px-6 rounded-md" target="_blank" rel="noopener">
+            GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="py-16 px-4 bg-secondary-100">
+    <div class="container mx-auto max-w-6xl">
+      <h2 class="text-3xl font-bold text-center mb-12 text-primary-600">Key Features</h2>
+      
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Feature 1 -->
+        <div class="feature-card p-6 rounded-lg border border-secondary-200 shadow-sm bg-secondary-100">
+          <div class="mb-4 text-primary-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2 text-primary-600">Kubernetes Integration</h3>
+          <p class="text-slate-600">
+            Seamlessly connects to your Kubernetes cluster, providing automated analysis and troubleshooting of resources.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card p-6 rounded-lg border border-secondary-200 shadow-sm bg-secondary-100">
+          <div class="mb-4 text-primary-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2 text-primary-600">Claude AI Powered</h3>
+          <p class="text-slate-600">
+            Leverages Claude's AI capabilities to analyze configurations, explain issues, and recommend solutions for your cluster.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card p-6 rounded-lg border border-secondary-200 shadow-sm bg-secondary-100">
+          <div class="mb-4 text-primary-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2 text-primary-600">GitOps Integration</h3>
+          <p class="text-slate-600">
+            Integrates with ArgoCD and GitLab to provide complete GitOps context for your deployments and configuration changes.
+          </p>
+        </div>
+      </div>
+      
+      <div class="grid md:grid-cols-2 gap-8 mt-8">
+        <!-- Feature 4 -->
+        <div class="feature-card p-6 rounded-lg border border-secondary-200 shadow-sm bg-secondary-100">
+          <div class="mb-4 text-primary-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2 text-primary-600">Troubleshooting & Analysis</h3>
+          <p class="text-slate-600">
+            Quickly identify issues in your cluster with comprehensive troubleshooting and analysis capabilities that trace through your entire deployment pipeline.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card p-6 rounded-lg border border-secondary-200 shadow-sm bg-secondary-100">
+          <div class="mb-4 text-primary-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2 text-primary-600">RESTful API</h3>
+          <p class="text-slate-600">
+            Comprehensive API for integrating with your existing tools and workflows, with detailed documentation and examples.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section class="py-16 px-4">
+    <div class="container mx-auto max-w-6xl">
+      <h2 class="text-3xl font-bold text-center mb-12 text-primary-600">How It Works</h2>
+      
+      <div class="grid md:grid-cols-3 gap-8 text-center">
+        <!-- Step 1 -->
+        <div class="step">
+          <div class="bg-secondary-200 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4 border border-secondary-300">
+            <span class="text-primary-600 text-xl font-bold">1</span>
+          </div>
+          <h3 class="text-xl font-semibold mb-2 text-primary-600">Connect</h3>
+          <p class="text-slate-600">
+            Connect the server to your Kubernetes cluster, ArgoCD instance, and GitLab repositories.
+          </p>
+        </div>
+        
+        <!-- Step 2 -->
+        <div class="step">
+          <div class="bg-secondary-200 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4 border border-secondary-300">
+            <span class="text-primary-600 text-xl font-bold">2</span>
+          </div>
+          <h3 class="text-xl font-semibold mb-2 text-primary-600">Query</h3>
+          <p class="text-slate-600">
+            Query resources, deployments, or commits through the API to get AI-powered analysis and context.
+          </p>
+        </div>
+        
+        <!-- Step 3 -->
+        <div class="step">
+          <div class="bg-secondary-200 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4 border border-secondary-300">
+            <span class="text-primary-600 text-xl font-bold">3</span>
+          </div>
+          <h3 class="text-xl font-semibold mb-2 text-primary-600">Analyze</h3>
+          <p class="text-slate-600">
+            Receive detailed analysis, troubleshooting recommendations, and insights from Claude AI.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-16 px-4 bg-secondary-100">
+    <div class="container mx-auto max-w-5xl">
+      <div class="bg-primary-500 text-white rounded-lg p-8 md:p-12 shadow-lg">
+        <div class="text-center">
+          <h2 class="text-3xl font-bold mb-4">Ready to transform your Kubernetes experience?</h2>
+          <p class="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
+            Get started with Kubernetes Claude MCP today and enhance your GitOps workflows with AI-powered analysis and troubleshooting.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/docs/quick-start" class="btn bg-white text-primary-700 hover:bg-secondary-100 font-medium py-2 px-6 rounded-md">
+              Quick Start Guide
+            </a>
+            <a href="/docs/installation" class="btn bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-6 rounded-md border border-primary-400">
+              Installation Guide
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

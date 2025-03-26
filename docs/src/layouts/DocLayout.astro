@@ -1,0 +1,22 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+export interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="container mx-auto px-4 py-12">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-3xl font-bold mb-6">{title}</h1>
+      {description && <p class="text-xl text-slate-600 dark:text-slate-400 mb-8">{description}</p>}
+      <div class="prose prose-lg dark:prose-invert max-w-none">
+        <slot />
+      </div>
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,44 @@
+---
+// This is a simple search component placeholder
+// In a real project, you might integrate with Algolia DocSearch or another search provider
+---
+
+<div class="search relative">
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      class="search-icon h-5 w-5" 
+      fill="none" 
+      viewBox="0 0 24 24" 
+      stroke="currentColor"
+    >
+      <path 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        stroke-width="2" 
+        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+      />
+    </svg>
+    <input 
+      type="search" 
+      class="search-input w-full md:w-64 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md"
+      placeholder="Search docs..." 
+      aria-label="Search documentation"
+    />
+  </div>
+  
+  <script>
+    // Placeholder for future search implementation
+    const searchInput = document.querySelector('.search-input');
+  
+    if (searchInput) {
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          // In a real implementation, this would trigger a search
+          console.log('Search query:', (e.target as HTMLInputElement).value);
+          
+          // Alert the user this is just a placeholder
+          alert('Search functionality is a placeholder. Integrate with Algolia DocSearch or similar in a production environment.');
+        }
+      });
+    }
+  </script>

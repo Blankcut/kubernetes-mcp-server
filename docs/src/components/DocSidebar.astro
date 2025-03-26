@@ -1,0 +1,39 @@
+---
+import { getCollection } from 'astro:content';
+
+// Get all docs, sorted by order
+const allDocs = await getCollection('docs');
+const sortedDocs = allDocs.sort((a, b) => 
+  (a.data.order || 999) - (b.data.order || 999)
+);
+
+// Get current path to highlight active item
+const currentPath = Astro.url.pathname;
+---
+
+<aside class="w-64 p-6 border-r border-secondary-300 bg-[#F8EDE3] hidden md:block">
+  <h2 class="text-lg font-semibold mb-4 text-primary-500">Documentation</h2>
+  <nav>
+    <ul class="space-y-2">
+      {sortedDocs.map(doc => {
+        const isActive = currentPath === `/docs/${doc.slug}` || 
+                         currentPath === `/${doc.slug}`;
+        
+        return (
+          <li>
+            <a 
+              href={`/docs/${doc.slug}`}
+              class={`block py-1 px-2 rounded ${
+                isActive 
+                ? 'bg-secondary-200 text-primary-700 font-medium' 
+                : 'text-slate-700 hover:text-primary-600'
+              }`}
+            >
+              {doc.data.title}
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </nav>
+</aside>

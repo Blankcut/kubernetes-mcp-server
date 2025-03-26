@@ -1,0 +1,54 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Debug: Log what's happening during build
+console.log("Running getStaticPaths in [...slug].astro");
+
+export async function getStaticPaths() {
+  // Attempt to get the collection and log the result
+  try {
+    const docs = await getCollection('docs');
+    console.log(`Found ${docs.length} docs:`, docs.map(d => d.slug));
+    
+    // Create routes for both /docs/slug and direct /slug access
+    return docs.flatMap(entry => [
+      {
+        params: { slug: `docs/${entry.slug}` },
+        props: { entry },
+      },
+      {
+        params: { slug: entry.slug },
+        props: { entry },
+      }
+    ]);
+  } catch (error) {
+    console.error("Error in getStaticPaths:", error);
+    return [];
+  }
+}
+
+// Get the actual slug from the URL
+const { slug } = Astro.params;
+const { entry } = Astro.props;
+
+// Render the content
+const { Content } = await entry.render();
+
+console.log(`Rendering page for slug: ${slug}, entry: ${entry?.slug}`);
+---
+
+<BaseLayout title={entry.data.title || "Documentation"}>
+  <div class="container mx-auto px-4 py-12">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-3xl font-bold mb-6 text-primary-600">{entry.data.title}</h1>
+      {entry.data.description && (
+        <p class="text-xl text-slate-600 mb-8">{entry.data.description}</p>
+      )}
+      
+      <div class="prose prose-lg max-w-none">
+        <Content />
+      </div>
+    </div>
+  </div>
+</BaseLayout>

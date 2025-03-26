@@ -1,0 +1,37 @@
+---
+export interface Props {
+  headings: {
+    depth: number;
+    slug: string;
+    text: string;
+  }[];
+}
+
+const { headings } = Astro.props;
+
+// Filter out any heading that's not h2 or h3
+const filteredHeadings = headings.filter(heading => heading.depth === 2 || heading.depth === 3);
+---
+
+{filteredHeadings.length > 0 && (
+  <div class="toc">
+    <div class="text-sm font-semibold uppercase text-slate-500 dark:text-slate-400 mb-4">
+      On this page
+    </div>
+    <ul class="text-sm space-y-2">
+      {filteredHeadings.map((heading) => (
+        <li class={`${heading.depth === 3 ? 'ml-4' : ''}`}>
+          <a
+            href={`#${heading.slug}`}
+            class={`
+              block hover:text-primary-600 dark:hover:text-primary-400
+              ${heading.depth === 2 ? 'text-slate-700 dark:text-slate-300' : 'text-slate-600 dark:text-slate-400'}
+            `}
+          >
+            {heading.text}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
