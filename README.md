@@ -206,7 +206,7 @@ A ready-to-use Postman collection will be available soon.
 ---
 
 ## Donation
-Please contribute to our coffee fund to help us continue to do great things [Buy Me Coffee](buymeacoffee.com/blankcut)
+Please contribute to our coffee fund to help us continue to do great things [Buy Me Coffee](https://buymeacoffee.com/blankcut)
 
 ## License
 This project is licensed under the [MIT License](./LICENSE).
