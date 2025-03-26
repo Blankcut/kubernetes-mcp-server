@@ -1,16 +1,258 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+
+const exampleCategories = [
+  {
+    title: "Basic API Usage",
+    description: "Examples of common API calls for resource analysis",
+    examples: [
+      {
+        title: "Analyzing a Pod",
+        description: "Query the status and health of a pod",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "resource": "pod",
+    "name": "my-app-pod",
+    "namespace": "default",
+    "query": "Is this pod healthy? What do the resource usage metrics show?"
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp/resource`,
+        language: "bash"
+      },
+      {
+        title: "Checking Service Connectivity",
+        description: "Investigate connectivity issues between services",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "resource": "service",
+    "name": "backend-service",
+    "namespace": "default",
+    "query": "Why can't my frontend pods connect to this service?"
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp/resource`,
+        language: "bash"
+      },
+      {
+        title: "Deployment Analysis",
+        description: "Understand why a deployment isn't scaling properly",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "resource": "deployment",
+    "name": "web-frontend",
+    "namespace": "default",
+    "query": "Why is this deployment not scaling to the requested replicas?"
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp/resource`,
+        language: "bash"
+      }
+    ]
+  },
+  {
+    title: "Troubleshooting",
+    description: "Examples for diagnosing and fixing common issues",
+    examples: [
+      {
+        title: "CrashLoopBackOff Investigation",
+        description: "Troubleshoot a pod in CrashLoopBackOff state",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "resource": "pod",
+    "name": "crashing-pod",
+    "namespace": "production",
+    "query": "This pod is in CrashLoopBackOff. What's causing it and how can I fix it?"
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp/troubleshoot`,
+        language: "bash"
+      },
+      {
+        title: "Ingress Issues",
+        description: "Debug problems with an Ingress resource",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "resource": "ingress",
+    "name": "app-ingress",
+    "namespace": "default",
+    "query": "External users are getting 404 errors when accessing the application. What's wrong with this ingress?"
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp/troubleshoot`,
+        language: "bash"
+      },
+      {
+        title: "Storage Problems",
+        description: "Troubleshoot issues with PersistentVolumeClaims",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "resource": "persistentvolumeclaim",
+    "name": "database-storage",
+    "namespace": "database",
+    "query": "Why is this PVC stuck in pending state?"
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp/troubleshoot`,
+        language: "bash"
+      }
+    ]
+  },
+  {
+    title: "GitOps Workflows",
+    description: "Examples for CI/CD integration and GitOps analysis",
+    examples: [
+      {
+        title: "ArgoCD Application Analysis",
+        description: "Check sync status and health of an ArgoCD application",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "resource": "application",
+    "name": "production-app",
+    "namespace": "argocd",
+    "query": "Is this application synced and healthy? If not, what are the issues?"
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp/resource`,
+        language: "bash"
+      },
+      {
+        title: "Commit Impact Analysis",
+        description: "Analyze how a specific commit affected the cluster",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "projectId": "mygroup/myproject",
+    "commitSha": "a1b2c3d4e5f6",
+    "query": "What changes were made in this commit and how have they affected the deployed resources?"
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp/commit`,
+        language: "bash"
+      },
+      {
+        title: "ArgoCD Sync Failure",
+        description: "Troubleshoot why an ArgoCD application isn't syncing",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "resource": "application",
+    "name": "failing-app",
+    "namespace": "argocd",
+    "query": "Why is this application failing to sync? What specific errors are occurring?"
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp/troubleshoot`,
+        language: "bash"
+      }
+    ]
+  },
+  {
+    title: "Advanced Usage",
+    description: "Examples for more complex scenarios and integrations",
+    examples: [
+      {
+        title: "Resource Relationship Analysis",
+        description: "Understanding dependencies between resources",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "resource": "deployment",
+    "name": "application",
+    "namespace": "production",
+    "query": "Create a map of all resources related to this deployment, including services, configmaps, secrets, and ingresses."
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp/resource`,
+        language: "bash"
+      },
+      {
+        title: "Multi-Resource Correlation",
+        description: "Analyze interactions between multiple resources",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "query": "Analyze the connection between the frontend deployment, backend service, and redis statefulset in the web namespace. Are there any connectivity or configuration issues?"
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp`,
+        language: "bash"
+      },
+      {
+        title: "GitOps Security Audit",
+        description: "Audit resources for security issues and best practices",
+        code: `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: your_api_key" \\
+  -d '{
+    "resource": "namespace",
+    "name": "production",
+    "query": "Perform a security audit of all resources in this namespace. Check for security best practices, RBAC issues, and potential vulnerabilities."
+  }' \\
+  http://mcp-server.example.com/api/v1/mcp/resource`,
+        language: "bash"
+      }
+    ]
+  }
+];
 ---
 
 <BaseLayout title="Examples | Kubernetes Claude MCP">
   <div class="container mx-auto px-4 py-12">
-    <div class="max-w-4xl mx-auto">
-      <h1 class="text-3xl font-bold mb-6">Examples</h1>
-      <p class="text-xl text-slate-600 dark:text-slate-400 mb-8">
-        Example usages and scenarios for the Kubernetes Claude MCP server.
+    <div class="max-w-5xl mx-auto">
+      <h1 class="text-4xl font-bold mb-6 text-primary-600">Examples</h1>
+      <p class="text-xl text-slate-600 mb-10">
+        Explore practical examples of using the Kubernetes Claude MCP server for various use cases. 
+        These examples demonstrate how to leverage the API for resource analysis, troubleshooting, and GitOps workflows.
       </p>
       
-      <p>This page is a placeholder for the Examples section.</p>
+      <div class="space-y-16">
+        {exampleCategories.map(category => (
+          <section class="example-category">
+            <h2 class="text-2xl font-bold mb-3 text-primary-600">{category.title}</h2>
+            <p class="text-lg text-slate-600 mb-6">{category.description}</p>
+            
+            <div class="space-y-8">
+              {category.examples.map(example => (
+                <div class="example-card border border-secondary-300 rounded-lg overflow-hidden bg-secondary-50">
+                  <div class="p-5 border-b border-secondary-300 bg-secondary-100">
+                    <h3 class="text-xl font-semibold text-primary-600">{example.title}</h3>
+                    <p class="text-slate-600 mt-1">{example.description}</p>
+                  </div>
+                  <div class="p-5">
+                    <CodeBlock 
+                      code={example.code} 
+                      lang={example.language}
+                      showLineNumbers={true}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+      
+      <div class="mt-12 text-center">
+        <h2 class="text-2xl font-bold mb-4 text-primary-600">Need More Help?</h2>
+        <p class="text-lg text-slate-600 mb-6">
+          Check out the detailed usage guides in the documentation or visit our GitHub repository.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="/docs/api-overview" class="btn bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-md">
+            API Reference
+          </a>
+          
+        </div>
+      </div>
     </div>
   </div>
 </BaseLayout>

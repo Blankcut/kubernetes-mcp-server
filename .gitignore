@@ -58,3 +58,6 @@ config.yaml
 
 # Ignore postman environment files
 *.postman_environment.json
+
+# Ignore tmp files
+/tmp
