@@ -25,6 +25,7 @@ type Server struct {
 	gitlabClient          *gitlab.Client
 	mcpHandler            *mcp.ProtocolHandler
 	troubleshootCorrelator *correlator.TroubleshootCorrelator
+	resourceMapper        *k8s.ResourceMapper
 	config                config.ServerConfig
 	logger                *logging.Logger
 }
@@ -53,9 +54,13 @@ func NewServer(
 		config:                cfg,
 		logger:                logger,
 	}
+
+	// Initialize resource mapper
+    server.resourceMapper = server.k8sClient.ResourceMapper
 	
 	// Set up routes
 	server.setupRoutes()
+	server.setupNamespaceRoutes() 
 	
 	return server
 }
@@ -166,4 +171,14 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+// Initialize the resourceMapper in NewServer
+func (s *Server) initResourceMapper() {
+	if s.k8sClient != nil {
+		s.resourceMapper = k8s.NewResourceMapper(s.k8sClient)
+		s.logger.Info("Resource mapper initialized")
+	} else {
+		s.logger.Warn("Cannot initialize resource mapper - K8s client is nil")
+	}
 }

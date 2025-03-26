@@ -1,30 +1,31 @@
 package k8s
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"context"
 	"fmt"
 	"path/filepath"
 
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/config"
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
-	
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+
+	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/config"
+	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
 )
 
 // Client wraps the Kubernetes clientset and provides additional functionality
 type Client struct {
-	clientset      *kubernetes.Clientset
-	dynamicClient  dynamic.Interface
+	clientset       *kubernetes.Clientset
+	dynamicClient   dynamic.Interface
 	discoveryClient *discovery.DiscoveryClient
-	restConfig     *rest.Config
-	defaultNS      string
-	logger         *logging.Logger
+	restConfig      *rest.Config
+	defaultNS       string
+	logger          *logging.Logger
+	ResourceMapper  *ResourceMapper
 }
 
 // NewClient creates a new Kubernetes client based on the provided configuration
@@ -32,11 +33,11 @@ func NewClient(cfg config.KubernetesConfig, logger *logging.Logger) (*Client, er
 	if logger == nil {
 		logger = logging.NewLogger().Named("k8s")
 	}
-	
+
 	var restConfig *rest.Config
 	var err error
 
-	logger.Debug("Initializing Kubernetes client", 
+	logger.Debug("Initializing Kubernetes client",
 		"inCluster", cfg.InCluster,
 		"kubeconfig", cfg.KubeConfig,
 		"defaultNamespace", cfg.DefaultNamespace)
@@ -64,7 +65,7 @@ func NewClient(cfg config.KubernetesConfig, logger *logging.Logger) (*Client, er
 		// Build config from kubeconfig file
 		configLoadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath}
 		configOverrides := &clientcmd.ConfigOverrides{}
-		
+
 		if cfg.DefaultContext != "" {
 			configOverrides.CurrentContext = cfg.DefaultContext
 			logger.Debug("Using specified context", "context", cfg.DefaultContext)
@@ -108,30 +109,36 @@ func NewClient(cfg config.KubernetesConfig, logger *logging.Logger) (*Client, er
 		defaultNamespace = "default"
 	}
 
-	logger.Info("Kubernetes client initialized", 
+	logger.Info("Kubernetes client initialized",
 		"defaultNamespace", defaultNamespace)
 
-	return &Client{
+	// Create the client instance
+	client := &Client{
 		clientset:       clientset,
 		dynamicClient:   dynamicClient,
 		discoveryClient: discoveryClient,
 		restConfig:      restConfig,
 		defaultNS:       defaultNamespace,
 		logger:          logger,
-	}, nil
+	}
+
+	// Initialize the ResourceMapper (ensure NewResourceMapper is defined in your package)
+	client.ResourceMapper = NewResourceMapper(client)
+
+	return client, nil
 }
 
 // CheckConnectivity verifies connectivity to the Kubernetes API
 func (c *Client) CheckConnectivity(ctx context.Context) error {
 	c.logger.Debug("Checking Kubernetes connectivity")
-	
+
 	// Try to get server version as a basic connectivity test
 	_, err := c.clientset.Discovery().ServerVersion()
 	if err != nil {
 		c.logger.Warn("Kubernetes connectivity check failed", "error", err)
 		return fmt.Errorf("failed to connect to Kubernetes API: %w", err)
 	}
-	
+
 	c.logger.Debug("Kubernetes connectivity check successful")
 	return nil
 }
@@ -139,7 +146,7 @@ func (c *Client) CheckConnectivity(ctx context.Context) error {
 // GetNamespaces returns a list of all namespaces in the cluster
 func (c *Client) GetNamespaces(ctx context.Context) ([]string, error) {
 	c.logger.Debug("Getting namespaces")
-	
+
 	namespaceList, err := c.clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list namespaces: %w", err)
@@ -177,4 +184,9 @@ func (c *Client) GetDynamicClient() dynamic.Interface {
 // GetDiscoveryClient returns the discovery client
 func (c *Client) GetDiscoveryClient() *discovery.DiscoveryClient {
 	return c.discoveryClient
+}
+
+// GetNamespaceTopology returns the topology for a specific namespace
+func (c *Client) GetNamespaceTopology(ctx context.Context, namespace string) (*NamespaceTopology, error) {
+	return c.ResourceMapper.GetNamespaceTopology(ctx, namespace)
 }

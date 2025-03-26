@@ -9,6 +9,7 @@ import (
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/correlator"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
+	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/k8s"
 )
 
 // ProtocolHandler handles the Model Context Protocol for Kubernetes
@@ -16,6 +17,7 @@ type ProtocolHandler struct {
 	claudeClient     *claude.Client
 	claudeProtocol   *claude.ProtocolHandler
 	gitOpsCorrelator *correlator.GitOpsCorrelator
+	k8sClient        *k8s.Client
 	contextManager   *ContextManager
 	promptGenerator  *PromptGenerator
 	logger           *logging.Logger
@@ -25,6 +27,7 @@ type ProtocolHandler struct {
 func NewProtocolHandler(
 	claudeClient *claude.Client, 
 	gitOpsCorrelator *correlator.GitOpsCorrelator,
+	k8sClient *k8s.Client,
 	logger *logging.Logger,
 ) *ProtocolHandler {
 	if logger == nil {
@@ -35,6 +38,7 @@ func NewProtocolHandler(
 		claudeClient:     claudeClient,
 		claudeProtocol:   claude.NewProtocolHandler(claudeClient),
 		gitOpsCorrelator: gitOpsCorrelator,
+		k8sClient:        k8sClient,
 		contextManager:   NewContextManager(100000, logger.Named("context")),
 		promptGenerator:  NewPromptGenerator(logger.Named("prompt")),
 		logger:           logger,

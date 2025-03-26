@@ -123,6 +123,7 @@ func main() {
 	mcpHandler := mcp.NewProtocolHandler(
 		claudeClient, 
 		gitOpsCorrelator,
+		k8sClient,
 		logger.Named("mcp"),
 	)
 
