@@ -1,15 +1,19 @@
 package mcp
 
 import (
-	"context"
-	"fmt"
-	"time"
+    "context"
+    "fmt"
+    "strings"
+    "time"
 
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/claude"
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/correlator"
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/k8s"
+    "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/claude"
+    "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/correlator"
+    "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/k8s"
+    "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
+    "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
+    "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/utils"
+    
+    "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // ProtocolHandler handles the Model Context Protocol for Kubernetes
@@ -45,83 +49,171 @@ func NewProtocolHandler(
 	}
 }
 
-// ProcessRequest handles MCP requests and generates responses
+// ProcessRequest processes an MCP request
 func (h *ProtocolHandler) ProcessRequest(ctx context.Context, request *models.MCPRequest) (*models.MCPResponse, error) {
-	startTime := time.Now()
-	h.logger.Info("Processing MCP request", "action", request.Action)
+    startTime := time.Now()
+    h.logger.Info("Processing MCP request", "action", request.Action)
 
-	var resourceContext string
-	var err error
-	
-	// Handle different types of queries
-	switch request.Action {
-	case "queryResource":
-		// Trace deployment for a specific resource
-		resourceInfo, err := h.gitOpsCorrelator.TraceResourceDeployment(
-			ctx,
-			request.Namespace,
-			request.Resource,
-			request.Name,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to trace resource deployment: %w", err)
-		}
-		
-		formattedContext, err := h.contextManager.FormatResourceContext(resourceInfo)
-		if err != nil {
-			return nil, fmt.Errorf("failed to format resource context: %w", err)
-		}
-		
-		resourceContext = formattedContext
-		
-	case "queryCommit":
-		// Find resources affected by a commit
-		resources, err := h.gitOpsCorrelator.FindResourcesAffectedByCommit(
-			ctx,
-			request.ProjectID,
-			request.CommitSHA,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to find resources affected by commit: %w", err)
-		}
-		
-		resourceContext, err = h.contextManager.CombineContexts(ctx, resources)
-		if err != nil {
-			return nil, fmt.Errorf("failed to combine resource contexts: %w", err)
-		}
-		
-	default:
-		return nil, fmt.Errorf("unsupported action: %s", request.Action)
-	}
+    var resourceContext string
+    var err error
+    
+    // Handle different types of queries
+    switch request.Action {
+    case "queryResource":
+        // If we have pre-populated context, use it
+        if request.Context != "" {
+            resourceContext = request.Context
+        } else {
+            // Trace deployment for a specific resource
+            resourceInfo, err := h.gitOpsCorrelator.TraceResourceDeployment(
+                ctx,
+                request.Namespace,
+                request.Resource,
+                request.Name,
+            )
+            if err != nil {
+                return nil, fmt.Errorf("failed to trace resource deployment: %w", err)
+            }
 
-	// Generate prompts for Claude
-	h.logger.Debug("Generating prompts for Claude")
-	systemPrompt := h.promptGenerator.GenerateSystemPrompt()
-	userPrompt := h.promptGenerator.GenerateUserPrompt(resourceContext, request.Query)
-	
-	// Get completion from Claude
-	h.logger.Debug("Sending request to Claude", 
-		"systemPromptLength", len(systemPrompt),
-		"userPromptLength", len(userPrompt))
-	
-	analysis, err := h.claudeProtocol.GetCompletion(ctx, systemPrompt, userPrompt)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get completion from Claude: %w", err)
-	}
+			// For non-namespace resources, enhance with the actual resource data
+			if !strings.EqualFold(request.Resource, "namespace") {
+				// Get the full resource details
+				resource, err := h.k8sClient.GetResource(ctx, request.Resource, request.Namespace, request.Name)
+				if err == nil && resource != nil {
+					// Add the full resource details to the context
+					resourceData, err := utils.ToJSON(resource.Object)
+					if err == nil {
+						resourceInfo.ResourceData = resourceData
+						
+						// Extract important deployment-specific information if available
+						if strings.EqualFold(request.Resource, "deployment") {
+							// Extract replicas info
+							specReplicas, found, _ := unstructured.NestedInt64(resource.Object, "spec", "replicas")
+							if found {
+								if resourceInfo.Metadata == nil {
+									resourceInfo.Metadata = make(map[string]interface{})
+								}
+								resourceInfo.Metadata["desiredReplicas"] = specReplicas
+							}
+							
+							// Extract status replica counts
+							statusReplicas, found, _ := unstructured.NestedInt64(resource.Object, "status", "replicas")
+							if found {
+								if resourceInfo.Metadata == nil {
+									resourceInfo.Metadata = make(map[string]interface{})
+								}
+								resourceInfo.Metadata["currentReplicas"] = statusReplicas
+							}
+							
+							// Extract readyReplicas
+							readyReplicas, found, _ := unstructured.NestedInt64(resource.Object, "status", "readyReplicas")
+							if found {
+								if resourceInfo.Metadata == nil {
+									resourceInfo.Metadata = make(map[string]interface{})
+								}
+								resourceInfo.Metadata["readyReplicas"] = readyReplicas
+							}
+							
+							// Extract availableReplicas
+							availableReplicas, found, _ := unstructured.NestedInt64(resource.Object, "status", "availableReplicas")
+							if found {
+								if resourceInfo.Metadata == nil {
+									resourceInfo.Metadata = make(map[string]interface{})
+								}
+								resourceInfo.Metadata["availableReplicas"] = availableReplicas
+							}
+							
+							// Extract container info
+							containers, found, _ := unstructured.NestedSlice(resource.Object, "spec", "template", "spec", "containers")
+							if found {
+								var containerInfo []map[string]interface{}
+								for _, c := range containers {
+									container, ok := c.(map[string]interface{})
+									if !ok {
+										continue
+									}
+									
+									containerData := map[string]interface{}{
+										"name": container["name"],
+									}
+									
+									if image, ok := container["image"].(string); ok {
+										containerData["image"] = image
+									}
+									
+									if resources, ok := container["resources"].(map[string]interface{}); ok {
+										containerData["resources"] = resources
+									}
+									
+									containerInfo = append(containerInfo, containerData)
+								}
+								
+								if resourceInfo.Metadata == nil {
+									resourceInfo.Metadata = make(map[string]interface{})
+								}
+								resourceInfo.Metadata["containers"] = containerInfo
+							}
+						}
+					}
+				}
+			}
+            
+            formattedContext, err := h.contextManager.FormatResourceContext(resourceInfo)
+            if err != nil {
+                return nil, fmt.Errorf("failed to format resource context: %w", err)
+            }
+            
+            resourceContext = formattedContext
+        }
+        
+    case "queryCommit":
+        // Find resources affected by a commit
+        resources, err := h.gitOpsCorrelator.FindResourcesAffectedByCommit(
+            ctx,
+            request.ProjectID,
+            request.CommitSHA,
+        )
+        if err != nil {
+            return nil, fmt.Errorf("failed to find resources affected by commit: %w", err)
+        }
+        
+        resourceContext, err = h.contextManager.CombineContexts(ctx, resources)
+        if err != nil {
+            return nil, fmt.Errorf("failed to combine resource contexts: %w", err)
+        }
+        
+    default:
+        return nil, fmt.Errorf("unsupported action: %s", request.Action)
+    }
 
-	// Build response
-	response := &models.MCPResponse{
-		Success:  true,
-		Analysis: analysis,
-		Message:  fmt.Sprintf("Successfully processed %s request in %v", request.Action, time.Since(startTime)),
-	}
+    // Generate prompts for Claude
+    h.logger.Debug("Generating prompts for Claude")
+    systemPrompt := h.promptGenerator.GenerateSystemPrompt()
+    userPrompt := h.promptGenerator.GenerateUserPrompt(resourceContext, request.Query)
+    
+    // Get completion from Claude
+    h.logger.Debug("Sending request to Claude", 
+        "systemPromptLength", len(systemPrompt),
+        "userPromptLength", len(userPrompt))
+    
+    analysis, err := h.claudeProtocol.GetCompletion(ctx, systemPrompt, userPrompt)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get completion from Claude: %w", err)
+    }
 
-	h.logger.Info("MCP request processed successfully", 
-		"action", request.Action,
-		"duration", time.Since(startTime),
-		"responseLength", len(analysis))
+    // Build response
+    response := &models.MCPResponse{
+        Success:  true,
+        Analysis: analysis,
+        Message:  fmt.Sprintf("Successfully processed %s request in %v", request.Action, time.Since(startTime)),
+    }
 
-	return response, nil
+    h.logger.Info("MCP request processed successfully", 
+        "action", request.Action,
+        "duration", time.Since(startTime),
+        "responseLength", len(analysis))
+
+    return response, nil
 }
 
 // ProcessTroubleshootRequest processes a troubleshooting request with detected issues

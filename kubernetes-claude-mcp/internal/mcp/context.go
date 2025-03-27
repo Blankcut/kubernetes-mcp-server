@@ -1,13 +1,14 @@
 package mcp
 
 import (
-	"context"
-	"fmt"
-	"time"
+    "context"
+    "fmt"
+    "strings"
+    "time"
 
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/utils"
+    "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
+    "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
+    "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/utils"
 )
 
 // ContextManager handles the creation and management of context for Claude
@@ -34,19 +35,163 @@ func NewContextManager(maxContextSize int, logger *logging.Logger) *ContextManag
 
 // FormatResourceContext formats a resource context for Claude
 func (cm *ContextManager) FormatResourceContext(rc models.ResourceContext) (string, error) {
-	cm.logger.Debug("Formatting resource context", 
-		"kind", rc.Kind, 
-		"name", rc.Name, 
-		"namespace", rc.Namespace)
-	
-	var formattedContext string
+    cm.logger.Debug("Formatting resource context", 
+        "kind", rc.Kind, 
+        "name", rc.Name, 
+        "namespace", rc.Namespace)
+    
+    var formattedContext string
 
-	// Format the basic resource information
-	formattedContext += fmt.Sprintf("# Kubernetes Resource: %s/%s\n", rc.Kind, rc.Name)
-	if rc.Namespace != "" {
-		formattedContext += fmt.Sprintf("Namespace: %s\n", rc.Namespace)
+    // Format the basic resource information
+    formattedContext += fmt.Sprintf("# Kubernetes Resource: %s/%s\n", rc.Kind, rc.Name)
+    if rc.Namespace != "" {
+        formattedContext += fmt.Sprintf("Namespace: %s\n", rc.Namespace)
+    }
+    formattedContext += fmt.Sprintf("API Version: %s\n\n", rc.APIVersion)
+
+	// Add the full resource data if available
+	if rc.ResourceData != "" {
+		formattedContext += "## Resource Details\n```json\n"
+		formattedContext += rc.ResourceData
+		formattedContext += "\n```\n\n"
 	}
-	formattedContext += fmt.Sprintf("API Version: %s\n\n", rc.APIVersion)
+
+	// Add resource-specific metadata if available
+	if rc.Metadata != nil {
+		// Add deployment-specific information
+		if strings.EqualFold(rc.Kind, "deployment") {
+			formattedContext += "## Deployment Status\n"
+			
+			// Add replica information
+			if desiredReplicas, ok := rc.Metadata["desiredReplicas"].(int64); ok {
+				formattedContext += fmt.Sprintf("Desired Replicas: %d\n", desiredReplicas)
+			}
+			
+			if currentReplicas, ok := rc.Metadata["currentReplicas"].(int64); ok {
+				formattedContext += fmt.Sprintf("Current Replicas: %d\n", currentReplicas)
+			}
+			
+			if readyReplicas, ok := rc.Metadata["readyReplicas"].(int64); ok {
+				formattedContext += fmt.Sprintf("Ready Replicas: %d\n", readyReplicas)
+			}
+			
+			if availableReplicas, ok := rc.Metadata["availableReplicas"].(int64); ok {
+				formattedContext += fmt.Sprintf("Available Replicas: %d\n", availableReplicas)
+			}
+			
+			// Add container information
+			if containers, ok := rc.Metadata["containers"].([]map[string]interface{}); ok && len(containers) > 0 {
+				formattedContext += "\n### Containers\n"
+				for i, container := range containers {
+					formattedContext += fmt.Sprintf("%d. Name: %s\n", i+1, container["name"])
+					
+					if image, ok := container["image"].(string); ok {
+						formattedContext += fmt.Sprintf("   Image: %s\n", image)
+					}
+					
+					if resources, ok := container["resources"].(map[string]interface{}); ok {
+						formattedContext += "   Resources:\n"
+						
+						if requests, ok := resources["requests"].(map[string]interface{}); ok {
+							formattedContext += "     Requests:\n"
+							for k, v := range requests {
+								formattedContext += fmt.Sprintf("       %s: %v\n", k, v)
+							}
+						}
+						
+						if limits, ok := resources["limits"].(map[string]interface{}); ok {
+							formattedContext += "     Limits:\n"
+							for k, v := range limits {
+								formattedContext += fmt.Sprintf("       %s: %v\n", k, v)
+							}
+						}
+					}
+				}
+			}
+			
+			formattedContext += "\n"
+		}
+	}
+
+    // If this is a namespace, add namespace-specific information
+    if strings.EqualFold(rc.Kind, "namespace") {
+        // Add resource metadata if available
+        if rc.Metadata != nil {
+            if resourceCounts, ok := rc.Metadata["resourceCounts"].(map[string][]string); ok {
+                formattedContext += "## Resources in Namespace\n"
+                for kind, resources := range resourceCounts {
+                    formattedContext += fmt.Sprintf("- %s: %d resources\n", kind, len(resources))
+                    
+                    // List up to 5 resources of each kind
+                    if len(resources) > 0 {
+                        formattedContext += "  - "
+                        for i, name := range resources {
+                            if i > 4 {
+                                formattedContext += fmt.Sprintf("and %d more...", len(resources)-5)
+                                break
+                            }
+                            if i > 0 {
+                                formattedContext += ", "
+                            }
+                            formattedContext += name
+                        }
+                        formattedContext += "\n"
+                    }
+                }
+                formattedContext += "\n"
+            }
+            
+            if health, ok := rc.Metadata["health"].(map[string]map[string]string); ok {
+                formattedContext += "## Health Status\n"
+                for kind, statuses := range health {
+                    healthy := 0
+                    unhealthy := 0
+                    progressing := 0
+                    unknown := 0
+                    
+                    for _, status := range statuses {
+                        switch status {
+                        case "healthy":
+                            healthy++
+                        case "unhealthy":
+                            unhealthy++
+                        case "progressing":
+                            progressing++
+                        default:
+                            unknown++
+                        }
+                    }
+                    
+                    formattedContext += fmt.Sprintf("- %s: %d healthy, %d unhealthy, %d progressing, %d unknown\n", 
+                        kind, healthy, unhealthy, progressing, unknown)
+                    
+                    // List unhealthy resources
+                    unhealthyResources := []string{}
+                    for name, status := range statuses {
+                        if status == "unhealthy" {
+                            unhealthyResources = append(unhealthyResources, name)
+                        }
+                    }
+                    
+                    if len(unhealthyResources) > 0 {
+                        formattedContext += "  Unhealthy: "
+                        for i, name := range unhealthyResources {
+                            if i > 4 {
+                                formattedContext += fmt.Sprintf("and %d more...", len(unhealthyResources)-5)
+                                break
+                            }
+                            if i > 0 {
+                                formattedContext += ", "
+                            }
+                            formattedContext += name
+                        }
+                        formattedContext += "\n"
+                    }
+                }
+                formattedContext += "\n"
+            }
+        }
+    }
 
 	// Format ArgoCD information if available
 	if rc.ArgoApplication != nil {
@@ -208,14 +353,40 @@ func (cm *ContextManager) FormatResourceContext(rc models.ResourceContext) (stri
 		formattedContext += "\n"
 	}
 
-	// Add related resources
 	if len(rc.RelatedResources) > 0 {
-		formattedContext += "## Related Resources\n"
-		for _, resource := range rc.RelatedResources {
-			formattedContext += fmt.Sprintf("- %s\n", resource)
-		}
-		formattedContext += "\n"
-	}
+        formattedContext += "## Related Resources\n"
+        // Group by resource kind
+        resourcesByKind := make(map[string][]string)
+        for _, resource := range rc.RelatedResources {
+            parts := strings.Split(resource, "/")
+            if len(parts) == 2 {
+                kind := parts[0]
+                name := parts[1]
+                resourcesByKind[kind] = append(resourcesByKind[kind], name)
+            } else {
+                // If format is unexpected, just add as is
+                formattedContext += fmt.Sprintf("- %s\n", resource)
+            }
+        }
+        
+        // Format resources by kind
+        for kind, names := range resourcesByKind {
+            formattedContext += fmt.Sprintf("- %s (%d):\n", kind, len(names))
+            // Show up to 10 resources per kind
+            maxToShow := 10
+            if len(names) > maxToShow {
+                for i := 0; i < maxToShow; i++ {
+                    formattedContext += fmt.Sprintf("  - %s\n", names[i])
+                }
+                formattedContext += fmt.Sprintf("  - ... and %d more\n", len(names)-maxToShow)
+            } else {
+                for _, name := range names {
+                    formattedContext += fmt.Sprintf("  - %s\n", name)
+                }
+            }
+        }
+        formattedContext += "\n"
+    }
 
 	// Add errors if any
 	if len(rc.Errors) > 0 {
@@ -228,17 +399,17 @@ func (cm *ContextManager) FormatResourceContext(rc models.ResourceContext) (stri
 
 	// Ensure context doesn't exceed max size
 	if len(formattedContext) > cm.maxContextSize {
-		cm.logger.Debug("Context exceeds maximum size, truncating", 
-			"originalSize", len(formattedContext), 
-			"maxSize", cm.maxContextSize)
-		formattedContext = utils.TruncateContextSmartly(formattedContext, cm.maxContextSize)
-	}
+        cm.logger.Debug("Context exceeds maximum size, truncating", 
+            "originalSize", len(formattedContext), 
+            "maxSize", cm.maxContextSize)
+        formattedContext = utils.TruncateContextSmartly(formattedContext, cm.maxContextSize)
+    }
 
 	cm.logger.Debug("Formatted resource context", 
-		"kind", rc.Kind, 
-		"name", rc.Name, 
-		"contextSize", len(formattedContext))
-	return formattedContext, nil
+        "kind", rc.Kind, 
+        "name", rc.Name, 
+        "contextSize", len(formattedContext))
+    return formattedContext, nil
 }
 
 // CombineContexts combines multiple resource contexts into a single context

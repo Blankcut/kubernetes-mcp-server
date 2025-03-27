@@ -1,13 +1,13 @@
 package mcp
 
 import (
-	"context"
-	"fmt"
-	"strings"
-	"time"
+    "context"
+    "fmt"
+    "strings"
+    "time"
 
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
-	k8s "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/k8s"
+    "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
+    k8s "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/k8s"
 )
 
 // NamespaceAnalysisResult contains the analysis of a namespace's resources
@@ -22,41 +22,52 @@ type NamespaceAnalysisResult struct {
 }
 
 // AnalyzeNamespace analyzes all resources in a namespace using Claude
-func (h *ProtocolHandler) AnalyzeNamespace(ctx context.Context, namespace string) (*NamespaceAnalysisResult, error) {
-	startTime := time.Now()
-	h.logger.Info("Analyzing namespace", "namespace", namespace)
-	
-	// Get namespace topology
-	topology, err := h.k8sClient.GetNamespaceTopology(ctx, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get namespace topology: %w", err)
-	}
-	
-	// Initialize result
-	result := &NamespaceAnalysisResult{
-		Namespace:      namespace,
-		ResourceCounts: make(map[string]int),
-		HealthStatus:   make(map[string]map[string]int),
-		Issues:         []models.Issue{},
-		Recommendations: []string{},
-	}
-	
-	// Extract resource counts
-	for kind, resources := range topology.Resources {
-		result.ResourceCounts[kind] = len(resources)
-	}
-	
-	// Extract health status
-	for kind, statusMap := range topology.Health {
-		healthCounts := make(map[string]int)
-		for _, status := range statusMap {
-			healthCounts[status]++
-		}
-		result.HealthStatus[kind] = healthCounts
-	}
-	
-	// Add relationships
-	result.ResourceRelationships = topology.Relationships
+func (h *ProtocolHandler) AnalyzeNamespace(ctx context.Context, namespace string) (*models.NamespaceAnalysisResult, error) {
+    startTime := time.Now()
+    h.logger.Info("Analyzing namespace", "namespace", namespace)
+    
+    // Get namespace topology
+    topology, err := h.k8sClient.GetNamespaceTopology(ctx, namespace)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get namespace topology: %w", err)
+    }
+    
+    // Initialize result
+    result := &models.NamespaceAnalysisResult{
+        Namespace:      namespace,
+        ResourceCounts: make(map[string]int),
+        HealthStatus:   make(map[string]map[string]int),
+        Issues:         []models.Issue{},
+        Recommendations: []string{},
+    }
+    
+    // Extract resource counts
+    for kind, resources := range topology.Resources {
+        result.ResourceCounts[kind] = len(resources)
+    }
+    
+    // Extract health status
+    for kind, statusMap := range topology.Health {
+        healthCounts := make(map[string]int)
+        for _, status := range statusMap {
+            healthCounts[status]++
+        }
+        result.HealthStatus[kind] = healthCounts
+    }
+    
+    // Add relationships - Convert from k8s.ResourceRelationship to models.ResourceRelationship
+    for _, rel := range topology.Relationships {
+        modelRel := models.ResourceRelationship{
+            SourceKind:      rel.SourceKind,
+            SourceName:      rel.SourceName,
+            SourceNamespace: rel.SourceNamespace,
+            TargetKind:      rel.TargetKind,
+            TargetName:      rel.TargetName,
+            TargetNamespace: rel.TargetNamespace,
+            RelationType:    rel.RelationType,
+        }
+        result.ResourceRelationships = append(result.ResourceRelationships, modelRel)
+    }
 	
 	// Get events for the namespace
 	events, err := h.k8sClient.GetNamespaceEvents(ctx, namespace)

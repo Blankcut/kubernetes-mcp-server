@@ -1,11 +1,13 @@
 package api
 
 import (
-	"encoding/json"
-	"net/http"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "strings"
 
-	"github.com/gorilla/mux"
-	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
+    "github.com/gorilla/mux"
+    "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
 )
 
 // setupRoutes configures the API routes
@@ -124,37 +126,125 @@ func (s *Server) handleMCPRequest(w http.ResponseWriter, r *http.Request) {
 	s.respondWithJSON(w, http.StatusOK, response)
 }
 
-// handleResourceQuery handles MCP requests for specific resources
+// handleResourceQuery handles MCP requests for querying resources
 func (s *Server) handleResourceQuery(w http.ResponseWriter, r *http.Request) {
-	var request models.MCPRequest
-	
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		s.respondWithError(w, http.StatusBadRequest, "Invalid request format", err)
-		return
-	}
-	
-	// Force action to be queryResource
-	request.Action = "queryResource"
-	
-	// Validate resource parameters
-	if request.Resource == "" || request.Name == "" {
-		s.respondWithError(w, http.StatusBadRequest, "Resource and name are required", nil)
-		return
-	}
-	
-	s.logger.Info("Received resource query", 
-		"resource", request.Resource, 
-		"name", request.Name, 
-		"namespace", request.Namespace)
-	
-	// Process the request
-	response, err := s.mcpHandler.ProcessRequest(r.Context(), &request)
-	if err != nil {
-		s.respondWithError(w, http.StatusInternalServerError, "Failed to process request", err)
-		return
-	}
-	
-	s.respondWithJSON(w, http.StatusOK, response)
+    var request models.MCPRequest
+    
+    if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+        s.respondWithError(w, http.StatusBadRequest, "Invalid request format", err)
+        return
+    }
+    
+    // Force action to be queryResource
+    request.Action = "queryResource"
+    
+    // Validate resource parameters
+    if request.Resource == "" || request.Name == "" {
+        s.respondWithError(w, http.StatusBadRequest, "Resource and name are required", nil)
+        return
+    }
+    
+    s.logger.Info("Received resource query", 
+        "resource", request.Resource, 
+        "name", request.Name, 
+        "namespace", request.Namespace)
+    
+    // Special handling for namespace resources to provide comprehensive data
+    if strings.ToLower(request.Resource) == "namespace" {
+        // Get namespace topology
+        topology, err := s.k8sClient.GetNamespaceTopology(r.Context(), request.Name)
+        if err != nil {
+            s.respondWithError(w, http.StatusInternalServerError, "Failed to get namespace topology", err)
+            return
+        }
+        
+        // Get all resources in the namespace
+        resources, err := s.k8sClient.GetAllNamespaceResources(r.Context(), request.Name)
+        if err != nil {
+            s.respondWithError(w, http.StatusInternalServerError, "Failed to get namespace resources", err)
+            return
+        }
+        
+        // Get namespace analysis
+        analysis, err := s.mcpHandler.AnalyzeNamespace(r.Context(), request.Name)
+        if err != nil {
+            s.respondWithError(w, http.StatusInternalServerError, "Failed to analyze namespace", err)
+            return
+        }
+        
+        // Create an enhanced request with the gathered data
+        enhancedRequest := request
+        enhancedRequest.Context = fmt.Sprintf("# Namespace Analysis: %s\n\n", request.Name)
+        enhancedRequest.Context += fmt.Sprintf("## Resource Counts\n")
+        for kind, count := range resources.Stats {
+            enhancedRequest.Context += fmt.Sprintf("- %s: %d\n", kind, count)
+        }
+        enhancedRequest.Context += "\n## Resource Relationships\n"
+        for _, rel := range topology.Relationships {
+            enhancedRequest.Context += fmt.Sprintf("- %s/%s → %s/%s (%s)\n", 
+                rel.SourceKind, rel.SourceName, rel.TargetKind, rel.TargetName, rel.RelationType)
+        }
+        enhancedRequest.Context += "\n## Health Status\n"
+        for kind, statuses := range topology.Health {
+            healthy := 0
+            unhealthy := 0
+            progressing := 0
+            unknown := 0
+            
+            for _, status := range statuses {
+                switch status {
+                case "healthy":
+                    healthy++
+                case "unhealthy":
+                    unhealthy++
+                case "progressing":
+                    progressing++
+                default:
+                    unknown++
+                }
+            }
+            
+            enhancedRequest.Context += fmt.Sprintf("- %s: %d healthy, %d unhealthy, %d progressing, %d unknown\n", 
+                kind, healthy, unhealthy, progressing, unknown)
+        }
+        
+        // Get events for the namespace
+        events, err := s.k8sClient.GetNamespaceEvents(r.Context(), request.Name)
+        if err == nil && len(events) > 0 {
+            enhancedRequest.Context += "\n## Recent Events\n"
+            for i, event := range events {
+                if i >= 10 {
+                    break // Limit to 10 events
+                }
+                enhancedRequest.Context += fmt.Sprintf("- [%s] %s: %s\n", 
+                    event.Type, event.Reason, event.Message)
+            }
+        }
+        
+        // Process the enhanced request
+        response, err := s.mcpHandler.ProcessRequest(r.Context(), &enhancedRequest)
+        if err != nil {
+            s.respondWithError(w, http.StatusInternalServerError, "Failed to process request", err)
+            return
+        }
+        
+        // Add analysis insights to the response
+        if analysis != nil {
+            response.NamespaceAnalysis = analysis
+        }
+        
+        s.respondWithJSON(w, http.StatusOK, response)
+        return
+    }
+    
+    // Process regular resource query
+    response, err := s.mcpHandler.ProcessRequest(r.Context(), &request)
+    if err != nil {
+        s.respondWithError(w, http.StatusInternalServerError, "Failed to process request", err)
+        return
+    }
+    
+    s.respondWithJSON(w, http.StatusOK, response)
 }
 
 // handleCommitQuery handles MCP requests for analyzing commits
