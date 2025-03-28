@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/argocd"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/correlator"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/gitlab"
@@ -14,20 +13,21 @@ import (
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/mcp"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/config"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
+	"github.com/gorilla/mux"
 )
 
 // Server represents the API server
 type Server struct {
-	router                *mux.Router
-	server                *http.Server
-	k8sClient             *k8s.Client
-	argoClient            *argocd.Client
-	gitlabClient          *gitlab.Client
-	mcpHandler            *mcp.ProtocolHandler
+	router                 *mux.Router
+	server                 *http.Server
+	k8sClient              *k8s.Client
+	argoClient             *argocd.Client
+	gitlabClient           *gitlab.Client
+	mcpHandler             *mcp.ProtocolHandler
 	troubleshootCorrelator *correlator.TroubleshootCorrelator
-	resourceMapper        *k8s.ResourceMapper
-	config                config.ServerConfig
-	logger                *logging.Logger
+	resourceMapper         *k8s.ResourceMapper
+	config                 config.ServerConfig
+	logger                 *logging.Logger
 }
 
 // NewServer creates a new API server
@@ -43,25 +43,25 @@ func NewServer(
 	if logger == nil {
 		logger = logging.NewLogger().Named("api")
 	}
-	
+
 	server := &Server{
-		router:                mux.NewRouter(),
-		k8sClient:             k8sClient,
-		argoClient:            argoClient,
-		gitlabClient:          gitlabClient,
-		mcpHandler:            mcpHandler,
+		router:                 mux.NewRouter(),
+		k8sClient:              k8sClient,
+		argoClient:             argoClient,
+		gitlabClient:           gitlabClient,
+		mcpHandler:             mcpHandler,
 		troubleshootCorrelator: troubleshootCorrelator,
-		config:                cfg,
-		logger:                logger,
+		config:                 cfg,
+		logger:                 logger,
 	}
 
 	// Initialize resource mapper
-    server.resourceMapper = server.k8sClient.ResourceMapper
-	
+	server.resourceMapper = server.k8sClient.ResourceMapper
+
 	// Set up routes
 	server.setupRoutes()
-	server.setupNamespaceRoutes() 
-	
+	server.setupNamespaceRoutes()
+
 	return server
 }
 
@@ -73,10 +73,10 @@ func (s *Server) Start(ctx context.Context) error {
 		ReadTimeout:  time.Duration(s.config.ReadTimeout) * time.Second,
 		WriteTimeout: time.Duration(s.config.WriteTimeout) * time.Second,
 	}
-	
+
 	// Channel for server errors
 	errCh := make(chan error, 1)
-	
+
 	// Start server in a goroutine
 	go func() {
 		s.logger.Info("Starting HTTP server", "address", s.config.Address)
@@ -84,7 +84,7 @@ func (s *Server) Start(ctx context.Context) error {
 			errCh <- err
 		}
 	}()
-	
+
 	// Wait for context cancellation or server error
 	select {
 	case <-ctx.Done():
@@ -107,13 +107,13 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Create a response writer that captures status code
 		rw := &responseWriter{w, http.StatusOK}
-		
+
 		// Call the next handler
 		next.ServeHTTP(rw, r)
-		
+
 		// Log the request
 		s.logger.Info("HTTP request",
 			"method", r.Method,
@@ -131,7 +131,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get API key from header
 		apiKey := r.Header.Get("X-API-Key")
-		
+
 		// Check for bearer token if API key is not provided
 		if apiKey == "" {
 			authHeader := r.Header.Get("Authorization")
@@ -139,23 +139,23 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 				s.respondWithError(w, http.StatusUnauthorized, "Authentication required", nil)
 				return
 			}
-			
+
 			// Extract token
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
 				s.respondWithError(w, http.StatusUnauthorized, "Invalid authorization format", nil)
 				return
 			}
-			
+
 			apiKey = parts[1]
 		}
-		
+
 		// Validate the API key against the configured key
 		if apiKey != s.config.Auth.APIKey {
 			s.respondWithError(w, http.StatusUnauthorized, "Invalid API key", nil)
 			return
 		}
-		
+
 		// Call the next handler
 		next.ServeHTTP(w, r)
 	})
@@ -181,4 +181,22 @@ func (s *Server) initResourceMapper() {
 	} else {
 		s.logger.Warn("Cannot initialize resource mapper - K8s client is nil")
 	}
+}
+
+func (s *Server) corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Set CORS headers
+		w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins in development
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// If this is a preflight request, respond with 200 OK
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		// Call the next handler
+		next.ServeHTTP(w, r)
+	})
 }
