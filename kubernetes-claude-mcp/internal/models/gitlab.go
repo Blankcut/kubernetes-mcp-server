@@ -13,11 +13,11 @@ type GitLabProject struct {
 
 // GitLabPipeline represents a GitLab CI/CD pipeline
 type GitLabPipeline struct {
-	ID        int    `json:"id"`
-	Status    string `json:"status"`
-	Ref       string `json:"ref"`
-	SHA       string `json:"sha"`
-	WebURL    string `json:"web_url"`
+	ID        int         `json:"id"`
+	Status    string      `json:"status"`
+	Ref       string      `json:"ref"`
+	SHA       string      `json:"sha"`
+	WebURL    string      `json:"web_url"`
 	CreatedAt interface{} `json:"created_at"`
 	UpdatedAt interface{} `json:"updated_at"`
 }
@@ -64,10 +64,10 @@ type GitLabDiff struct {
 
 // GitLabDeployment represents a deployment in GitLab
 type GitLabDeployment struct {
-	ID          int    `json:"id"`
-	Status      string `json:"status"`
-	CreatedAt interface{} `json:"created_at"`
-	UpdatedAt interface{} `json:"updated_at"`
+	ID          int         `json:"id"`
+	Status      string      `json:"status"`
+	CreatedAt   interface{} `json:"created_at"`
+	UpdatedAt   interface{} `json:"updated_at"`
 	Environment struct {
 		ID    int    `json:"id"`
 		Name  string `json:"name"`
@@ -75,13 +75,13 @@ type GitLabDeployment struct {
 		State string `json:"state"`
 	} `json:"environment"`
 	Deployable struct {
-		ID        int    `json:"id"`
-		Status    string `json:"status"`
-		Stage     string `json:"stage"`
-		Name      string `json:"name"`
-		Ref       string `json:"ref"`
-		Tag       bool   `json:"tag"`
-		Pipeline  struct {
+		ID       int    `json:"id"`
+		Status   string `json:"status"`
+		Stage    string `json:"stage"`
+		Name     string `json:"name"`
+		Ref      string `json:"ref"`
+		Tag      bool   `json:"tag"`
+		Pipeline struct {
 			ID     int    `json:"id"`
 			Status string `json:"status"`
 		} `json:"pipeline"`
@@ -100,4 +100,92 @@ type GitLabRelease struct {
 			URL  string `json:"url"`
 		} `json:"links"`
 	} `json:"assets"`
+}
+
+// GitLabMergeRequest represents a merge request in GitLab
+type GitLabMergeRequest struct {
+	ID          int    `json:"id"`
+	IID         int    `json:"iid"`
+	ProjectID   int    `json:"project_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	State       string `json:"state"`
+	MergedBy    *struct {
+		ID       int    `json:"id"`
+		Username string `json:"username"`
+		Name     string `json:"name"`
+	} `json:"merged_by,omitempty"`
+	MergedAt     interface{} `json:"merged_at"`
+	CreatedAt    interface{} `json:"created_at"`
+	UpdatedAt    interface{} `json:"updated_at"`
+	TargetBranch string      `json:"target_branch"`
+	SourceBranch string      `json:"source_branch"`
+	Author       struct {
+		ID       int    `json:"id"`
+		Username string `json:"username"`
+		Name     string `json:"name"`
+	} `json:"author"`
+	Assignees []struct {
+		ID       int    `json:"id"`
+		Username string `json:"username"`
+		Name     string `json:"name"`
+	} `json:"assignees"`
+	SourceProjectID int    `json:"source_project_id"`
+	TargetProjectID int    `json:"target_project_id"`
+	WebURL          string `json:"web_url"`
+	MergeStatus     string `json:"merge_status"`
+	Changes         []struct {
+		OldPath     string `json:"old_path"`
+		NewPath     string `json:"new_path"`
+		Diff        string `json:"diff"`
+		NewFile     bool   `json:"new_file"`
+		RenamedFile bool   `json:"renamed_file"`
+		DeletedFile bool   `json:"deleted_file"`
+	} `json:"changes,omitempty"`
+	DiffRefs struct {
+		BaseSHA  string `json:"base_sha"`
+		HeadSHA  string `json:"head_sha"`
+		StartSHA string `json:"start_sha"`
+	} `json:"diff_refs"`
+	UserNotesCount      int              `json:"user_notes_count"`
+	HasConflicts        bool             `json:"has_conflicts"`
+	Pipelines           []GitLabPipeline `json:"pipelines,omitempty"`
+	MergeRequestContext struct {
+		CommitMessages     []string `json:"commit_messages,omitempty"`
+		AffectedFiles      []string `json:"affected_files,omitempty"`
+		HelmChartAffected  bool     `json:"helm_chart_affected,omitempty"`
+		KubernetesManifest bool     `json:"kubernetes_manifests_affected,omitempty"`
+	} `json:"merge_request_context,omitempty"`
+}
+
+// GitLabMergeRequestComment represents a comment on a GitLab merge request
+type GitLabMergeRequestComment struct {
+	ID           int    `json:"id"`
+	Body         string `json:"body"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+	System       bool   `json:"system"`
+	NoteableID   int    `json:"noteable_id"`
+	NoteableType string `json:"noteable_type"`
+	Author       struct {
+		ID       int    `json:"id"`
+		Username string `json:"username"`
+		Name     string `json:"name"`
+	} `json:"author"`
+}
+
+// GitLabMergeRequestApproval represents approval information for a merge request
+type GitLabMergeRequestApproval struct {
+	ID               int  `json:"id"`
+	ProjectID        int  `json:"project_id"`
+	ApprovalRequired bool `json:"approval_required"`
+	ApprovedBy       []struct {
+		User struct {
+			ID       int    `json:"id"`
+			Username string `json:"username"`
+			Name     string `json:"name"`
+		} `json:"user"`
+	} `json:"approved_by"`
+	ApprovalsRequired int `json:"approvals_required"`
+	ApprovalsLeft     int `json:"approvals_left"`
 }

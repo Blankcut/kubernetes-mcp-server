@@ -45,6 +45,41 @@ func (s *Server) setupRoutes() {
 	// GitLab endpoints
 	apiSecure.HandleFunc("/gitlab/projects", s.handleListGitLabProjects).Methods("GET")
 	apiSecure.HandleFunc("/gitlab/projects/{projectId}/pipelines", s.handleListGitLabPipelines).Methods("GET")
+
+	// Merge Request endpoints
+	apiSecure.HandleFunc("/mcp/mergeRequest", s.handleMergeRequestQuery).Methods("POST")
+}
+
+// handleMergeRequestQuery handles MCP requests for analyzing merge requests
+func (s *Server) handleMergeRequestQuery(w http.ResponseWriter, r *http.Request) {
+	var request models.MCPRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.respondWithError(w, http.StatusBadRequest, "Invalid request format", err)
+		return
+	}
+
+	// Force action to be queryMergeRequest
+	request.Action = "queryMergeRequest"
+
+	// Validate merge request parameters
+	if request.ProjectID == "" || request.MergeRequestIID <= 0 {
+		s.respondWithError(w, http.StatusBadRequest, "Project ID and merge request IID are required", nil)
+		return
+	}
+
+	s.logger.Info("Received merge request query",
+		"projectId", request.ProjectID,
+		"mergeRequestIID", request.MergeRequestIID)
+
+	// Process the request
+	response, err := s.mcpHandler.ProcessRequest(r.Context(), &request)
+	if err != nil {
+		s.respondWithError(w, http.StatusInternalServerError, "Failed to process request", err)
+		return
+	}
+
+	s.respondWithJSON(w, http.StatusOK, response)
 }
 
 // handleHealth handles health check requests
