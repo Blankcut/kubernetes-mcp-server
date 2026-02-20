@@ -190,9 +190,9 @@ func (c *HelmCorrelator) analyzeHelmChart(ctx context.Context, projectID, commit
 	// Get template files
 	for _, file := range changedFiles {
 		if strings.Contains(file, "templates/") {
-			content, err := c.gitlabClient.GetFileContent(ctx, projectID, file, commitSHA)
-			if err != nil {
-				c.logger.Warn("Failed to get template file", "file", file, "error", err)
+			content, fileErr := c.gitlabClient.GetFileContent(ctx, projectID, file, commitSHA)
+			if fileErr != nil {
+				c.logger.Warn("Failed to get template file", "file", file, "error", fileErr)
 				continue
 			}
 

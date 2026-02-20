@@ -98,17 +98,17 @@ func (c *Client) FindApplicationsByResource(ctx context.Context, kind, name, nam
 			Name string `json:"name"`
 		}
 
-		if err := json.NewDecoder(resp.Body).Decode(&appRefs); err != nil {
-			c.logger.Warn("Failed to decode application references", "error", err)
+		if decodeErr := json.NewDecoder(resp.Body).Decode(&appRefs); decodeErr != nil {
+			c.logger.Warn("Failed to decode application references", "error", decodeErr)
 		} else if len(appRefs) > 0 {
 			// Get full application details for each reference
 			var apps []models.ArgoApplication
 			for _, ref := range appRefs {
-				app, err := c.GetApplication(ctx, ref.Name)
-				if err != nil {
+				app, getErr := c.GetApplication(ctx, ref.Name)
+				if getErr != nil {
 					c.logger.Warn("Failed to get application details",
 						"name", ref.Name,
-						"error", err)
+						"error", getErr)
 					continue
 				}
 				apps = append(apps, *app)

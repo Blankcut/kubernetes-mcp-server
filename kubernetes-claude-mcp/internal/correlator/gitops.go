@@ -204,9 +204,9 @@ func (c *GitOpsCorrelator) TraceResourceDeployment(
 		c.logger.Debug("Retrieved Kubernetes resource", "apiVersion", resourceContext.APIVersion)
 
 		// Get events related to this resource with better error handling
-		events, err := c.k8sClient.GetResourceEvents(ctx, namespace, kind, name)
-		if err != nil {
-			errMsg := fmt.Sprintf("Failed to get resource events: %v", err)
+		events, eventsErr := c.k8sClient.GetResourceEvents(ctx, namespace, kind, name)
+		if eventsErr != nil {
+			errMsg := fmt.Sprintf("Failed to get resource events: %v", eventsErr)
 			errors = append(errors, errMsg)
 			c.logger.Warn(errMsg, "kind", kind, "name", name, "namespace", namespace)
 		} else {
@@ -279,13 +279,13 @@ func (c *GitOpsCorrelator) TraceResourceDeployment(
 					environment := extractEnvironmentFromArgoApp(app)
 					if environment != "" {
 						// Get recent deployments to this environment
-						deployments, err := c.gitlabClient.FindRecentDeployments(
+						deployments, deploymentsErr := c.gitlabClient.FindRecentDeployments(
 							ctx,
 							fmt.Sprintf("%d", project.ID),
 							environment,
 						)
-						if err != nil {
-							errMsg := fmt.Sprintf("Failed to find deployments: %v", err)
+						if deploymentsErr != nil {
+							errMsg := fmt.Sprintf("Failed to find deployments: %v", deploymentsErr)
 							errors = append(errors, errMsg)
 							c.logger.Warn(errMsg)
 						} else if len(deployments) > 0 {

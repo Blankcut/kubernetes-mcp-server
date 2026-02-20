@@ -65,24 +65,24 @@ func (h *ProtocolHandler) ProcessRequest(ctx context.Context, request *models.MC
 			resourceContext = request.Context
 		} else {
 			// Trace deployment for a specific resource
-			resourceInfo, err := h.gitOpsCorrelator.TraceResourceDeployment(
+			resourceInfo, traceErr := h.gitOpsCorrelator.TraceResourceDeployment(
 				ctx,
 				request.Namespace,
 				request.Resource,
 				request.Name,
 			)
-			if err != nil {
-				return nil, fmt.Errorf("failed to trace resource deployment: %w", err)
+			if traceErr != nil {
+				return nil, fmt.Errorf("failed to trace resource deployment: %w", traceErr)
 			}
 
 			// For non-namespace resources, enhance with the actual resource data
 			if !strings.EqualFold(request.Resource, "namespace") {
 				// Get the full resource details
-				resource, err := h.k8sClient.GetResource(ctx, request.Resource, request.Namespace, request.Name)
-				if err == nil && resource != nil {
+				resource, getErr := h.k8sClient.GetResource(ctx, request.Resource, request.Namespace, request.Name)
+				if getErr == nil && resource != nil {
 					// Add the full resource details to the context
-					resourceData, err := utils.ToJSON(resource.Object)
-					if err == nil {
+					resourceData, jsonErr := utils.ToJSON(resource.Object)
+					if jsonErr == nil {
 						resourceInfo.ResourceData = resourceData
 
 						// Extract important deployment-specific information if available
@@ -158,9 +158,9 @@ func (h *ProtocolHandler) ProcessRequest(ctx context.Context, request *models.MC
 				}
 			}
 
-			formattedContext, err := h.contextManager.FormatResourceContext(resourceInfo)
-			if err != nil {
-				return nil, fmt.Errorf("failed to format resource context: %w", err)
+			formattedContext, formatErr := h.contextManager.FormatResourceContext(resourceInfo)
+			if formatErr != nil {
+				return nil, fmt.Errorf("failed to format resource context: %w", formatErr)
 			}
 
 			resourceContext = formattedContext
@@ -168,13 +168,13 @@ func (h *ProtocolHandler) ProcessRequest(ctx context.Context, request *models.MC
 
 	case "queryMergeRequest":
 		// Analyze merge request
-		resources, err := h.gitOpsCorrelator.AnalyzeMergeRequest(
+		resources, analyzeErr := h.gitOpsCorrelator.AnalyzeMergeRequest(
 			ctx,
 			request.ProjectID,
 			request.MergeRequestIID,
 		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to analyze merge request: %w", err)
+		if analyzeErr != nil {
+			return nil, fmt.Errorf("failed to analyze merge request: %w", analyzeErr)
 		}
 
 		resourceContext, err = h.contextManager.CombineContexts(ctx, resources)

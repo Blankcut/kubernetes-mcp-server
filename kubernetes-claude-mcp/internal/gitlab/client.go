@@ -145,8 +145,8 @@ func (c *Client) attemptRequest(ctx context.Context, method, endpoint string, bo
 	}
 
 	// Add auth header
-	if err := c.addAuth(req); err != nil {
-		return nil, fmt.Errorf("failed to add authentication: %w", err)
+	if authErr := c.addAuth(req); authErr != nil {
+		return nil, fmt.Errorf("failed to add authentication: %w", authErr)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
