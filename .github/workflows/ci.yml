@@ -86,7 +86,7 @@ jobs:
           go build -v -o mcp-server-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/server/main.go
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: mcp-server-${{ matrix.goos }}-${{ matrix.goarch }}
           path: kubernetes-claude-mcp/mcp-server-${{ matrix.goos }}-${{ matrix.goarch }}
