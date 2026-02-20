@@ -126,27 +126,27 @@ func (c *Config) Validate() error {
 
 	// Check Claude configuration
 	if c.Claude.APIKey == "" {
-		return fmt.Errorf("Claude API key is required")
+		return fmt.Errorf("claude API key is required")
 	}
 
 	if c.Claude.ModelID == "" {
-		return fmt.Errorf("Claude model ID is required")
+		return fmt.Errorf("claude model ID is required")
 	}
 
 	if c.Claude.BaseURL == "" {
-		return fmt.Errorf("Claude base URL is required")
+		return fmt.Errorf("claude base URL is required")
 	}
 
 	if c.Claude.MaxTokens <= 0 {
-		return fmt.Errorf("Claude max tokens must be positive")
+		return fmt.Errorf("claude max tokens must be positive")
 	}
 
 	if c.Claude.MaxTokens > 8192 {
-		return fmt.Errorf("Claude max tokens cannot exceed 8192")
+		return fmt.Errorf("claude max tokens cannot exceed 8192")
 	}
 
 	if c.Claude.Temperature < 0.0 || c.Claude.Temperature > 1.0 {
-		return fmt.Errorf("Claude temperature must be between 0.0 and 1.0")
+		return fmt.Errorf("claude temperature must be between 0.0 and 1.0")
 	}
 
 	// Check Kubernetes configuration

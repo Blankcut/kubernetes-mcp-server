@@ -79,6 +79,8 @@ func NewClient(cfg ClaudeConfig, logger *logging.Logger) *Client {
 }
 
 // ClaudeConfig holds configuration for the Claude API client
+//
+//nolint:revive // ClaudeConfig is intentionally named to be explicit about the service
 type ClaudeConfig struct {
 	APIKey      string  `yaml:"apiKey"`
 	BaseURL     string  `yaml:"baseURL"`

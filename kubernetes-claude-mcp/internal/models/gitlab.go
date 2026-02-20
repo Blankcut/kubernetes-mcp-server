@@ -165,8 +165,8 @@ type GitLabMergeRequestComment struct {
 	CreatedAt    string `json:"created_at"`
 	UpdatedAt    string `json:"updated_at"`
 	System       bool   `json:"system"`
-	NoteableID   int    `json:"noteable_id"`
-	NoteableType string `json:"noteable_type"`
+	NoteableID   int    `json:"noteable_id"`   //nolint:misspell // GitLab API uses "noteable"
+	NoteableType string `json:"noteable_type"` //nolint:misspell // GitLab API uses "noteable"
 	Author       struct {
 		ID       int    `json:"id"`
 		Username string `json:"username"`

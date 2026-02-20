@@ -12,7 +12,6 @@ import (
 
 // setupRoutes configures the API routes
 func (s *Server) setupRoutes() {
-
 	// Apply CORS middleware to all routes
 	s.router.Use(s.corsMiddleware)
 
@@ -276,7 +275,7 @@ func (s *Server) handleResourceQuery(w http.ResponseWriter, r *http.Request) {
 		// Create an enhanced request with the gathered data
 		enhancedRequest := request
 		enhancedRequest.Context = fmt.Sprintf("# Namespace Analysis: %s\n\n", request.Name)
-		enhancedRequest.Context += fmt.Sprintf("## Resource Counts\n")
+		enhancedRequest.Context += "## Resource Counts\n"
 		for kind, count := range resources.Stats {
 			enhancedRequest.Context += fmt.Sprintf("- %s: %d\n", kind, count)
 		}

@@ -9,10 +9,10 @@ import (
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
 )
 
-// TODO: Implement the VaultManager
-// VaultManager handles access to HashiCorp Vault for secrets management
+// VaultManager handles access to HashiCorp Vault for secrets management.
 // This is a simplified version for the example - in a real implementation,
-// you would use the official Vault client library
+// you would use the official Vault client library.
+// TODO: Implement the VaultManager
 type VaultManager struct {
 	logger     *logging.Logger
 	vaultAddr  string
@@ -55,7 +55,7 @@ func (vm *VaultManager) IsAvailable() bool {
 // GetCredentials retrieves credentials for a service from Vault
 func (vm *VaultManager) GetCredentials(ctx context.Context, service string) (*Credentials, error) {
 	if !vm.available {
-		return nil, fmt.Errorf("Vault not available")
+		return nil, fmt.Errorf("vault not available")
 	}
 
 	// We need to use the Vault API to get credentials
@@ -90,7 +90,7 @@ func (vm *VaultManager) GetCredentials(ctx context.Context, service string) (*Cr
 // SaveCredentials saves credentials for a service to Vault
 func (vm *VaultManager) SaveCredentials(ctx context.Context, service string, creds *Credentials) error {
 	if !vm.available {
-		return fmt.Errorf("Vault not available")
+		return fmt.Errorf("vault not available")
 	}
 
 	// This needs to use the Vault API to store credentials

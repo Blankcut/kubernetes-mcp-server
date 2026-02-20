@@ -235,7 +235,12 @@ func (h *ProtocolHandler) generateNamespaceAnalysisPrompt(namespace string, topo
 
 		// List relationships by type
 		for relType, relations := range relationshipsByType {
-			prompt += fmt.Sprintf("### %s Relationships\n", strings.Title(relType))
+			// Capitalize first letter of relationship type
+			capitalizedType := relType
+			if len(relType) > 0 {
+				capitalizedType = strings.ToUpper(relType[:1]) + relType[1:]
+			}
+			prompt += fmt.Sprintf("### %s Relationships\n", capitalizedType)
 			for _, rel := range relations {
 				prompt += fmt.Sprintf("- %s\n", rel)
 			}

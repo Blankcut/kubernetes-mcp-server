@@ -204,10 +204,11 @@ func (tc *TroubleshootCorrelator) analyzePodStatus(ctx context.Context, pod *uns
 			Description: fmt.Sprintf("Pod is in %s state", phase),
 		}
 
-		if phase == "Pending" {
+		switch phase {
+		case "Pending":
 			issue.Title = "Pod Pending"
 			issue.Description = "Pod is still in Pending state and hasn't started running"
-		} else if phase == "Failed" {
+		case "Failed":
 			issue.Severity = "Error"
 			issue.Title = "Pod Failed"
 		}

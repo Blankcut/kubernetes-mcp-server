@@ -14,6 +14,7 @@ import (
 // ServiceType represents the type of service requiring credentials
 type ServiceType string
 
+// Service type constants for credential management
 const (
 	ServiceKubernetes ServiceType = "kubernetes"
 	ServiceArgoCD     ServiceType = "argocd"

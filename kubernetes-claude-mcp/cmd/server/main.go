@@ -21,7 +21,6 @@ import (
 )
 
 func main() {
-
 	// Parse command line flags
 	configPath := flag.String("config", "config.yaml", "path to config file")
 	logLevel := flag.String("log-level", "info", "logging level (debug, info, warn, error)")

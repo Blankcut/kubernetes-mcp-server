@@ -41,7 +41,7 @@ func NewGitOpsCorrelator(k8sClient *k8s.Client, argoClient *argocd.Client, gitla
 	return correlator
 }
 
-// Add a new method to analyze merge requests
+// AnalyzeMergeRequest analyzes a GitLab merge request and identifies affected Kubernetes resources
 func (c *GitOpsCorrelator) AnalyzeMergeRequest(
 	ctx context.Context,
 	projectID string,
@@ -178,6 +178,7 @@ func (c *GitOpsCorrelator) AnalyzeMergeRequest(
 	return result, nil
 }
 
+// TraceResourceDeployment traces the deployment history of a Kubernetes resource through GitOps
 func (c *GitOpsCorrelator) TraceResourceDeployment(
 	ctx context.Context,
 	namespace, kind, name string,
@@ -525,11 +526,7 @@ func extractGitLabProjectPath(repoURL string) string {
 		}
 
 		// Remove ".git" suffix if present
-		pathPart := parts[1]
-		if strings.HasSuffix(pathPart, ".git") {
-			pathPart = pathPart[:len(pathPart)-4]
-		}
-
+		pathPart := strings.TrimSuffix(parts[1], ".git")
 		return pathPart
 	}
 
