@@ -170,6 +170,8 @@ func (c *Client) GetResourceDetails(ctx context.Context, kind, namespace, name s
 }
 
 // addResourceMetrics adds resource-specific metrics based on resource type
+//
+//nolint:unparam // ctx parameter reserved for future metrics collection from external sources
 func (c *Client) addResourceMetrics(ctx context.Context, resource *unstructured.Unstructured, details *ResourceDetails) {
 	kind := resource.GetKind()
 

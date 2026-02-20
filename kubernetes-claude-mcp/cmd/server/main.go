@@ -39,8 +39,8 @@ func main() {
 	}
 
 	// Validate configuration
-	if err := cfg.Validate(); err != nil {
-		logger.Fatal("Invalid configuration", "error", err)
+	if validateErr := cfg.Validate(); validateErr != nil {
+		logger.Fatal("Invalid configuration", "error", validateErr)
 	}
 
 	// Set up context with cancellation
@@ -50,8 +50,8 @@ func main() {
 	// Initialize credential provider
 	logger.Info("Initializing credential provider")
 	credProvider := auth.NewCredentialProvider(cfg)
-	if err := credProvider.LoadCredentials(ctx); err != nil {
-		logger.Fatal("Failed to load credentials", "error", err)
+	if loadErr := credProvider.LoadCredentials(ctx); loadErr != nil {
+		logger.Fatal("Failed to load credentials", "error", loadErr)
 	}
 
 	// Initialize Kubernetes client

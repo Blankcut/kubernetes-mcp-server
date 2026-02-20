@@ -122,6 +122,8 @@ func (p *CredentialProvider) GetCredentials(serviceType ServiceType) (*Credentia
 }
 
 // loadKubernetesCredentials loads Kubernetes authentication credentials
+//
+//nolint:unparam // ctx parameter reserved for future credential loading from external sources
 func (p *CredentialProvider) loadKubernetesCredentials(ctx context.Context) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -317,6 +319,8 @@ func (p *CredentialProvider) RefreshCredentials(ctx context.Context, serviceType
 }
 
 // refreshArgoCDToken refreshes the ArgoCD token if using username/password auth
+//
+//nolint:unparam // ctx parameter reserved for future token refresh with context
 func (p *CredentialProvider) refreshArgoCDToken(ctx context.Context) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()

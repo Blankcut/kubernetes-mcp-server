@@ -196,6 +196,8 @@ func (p *Parser) DiffChartVersions(ctx context.Context, chartPath1, chartPath2 s
 }
 
 // compareManifests compares two sets of manifests and returns the names of resources that differ
+//
+//nolint:unparam // manifests1 parameter reserved for future manifest comparison implementation
 func (p *Parser) compareManifests(manifests1, manifests2 []string) []string {
 	// This is a simplified implementation
 	// In a real system, you would parse the YAML and compare by resource identifiers

@@ -194,6 +194,8 @@ func (c *Client) attemptRequest(ctx context.Context, method, endpoint string, bo
 }
 
 // createSession creates a new ArgoCD session
+//
+//nolint:unparam // time.Time return value reserved for future token expiration tracking
 func (c *Client) createSession(ctx context.Context, username, password string) (string, time.Time, error) {
 	// Create session request
 	sessionReq := struct {

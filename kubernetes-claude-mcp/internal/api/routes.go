@@ -577,6 +577,8 @@ func (s *Server) respondWithError(w http.ResponseWriter, code int, message strin
 }
 
 // respondWithJSON sends a JSON response to the client
+//
+//nolint:unparam // code parameter is kept for consistency with error response pattern
 func (s *Server) respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
