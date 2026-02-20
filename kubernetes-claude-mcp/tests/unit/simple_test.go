@@ -25,9 +25,11 @@ func TestConfig_Validate_Valid(t *testing.T) {
 			Address: "localhost:8080",
 		},
 		Claude: config.ClaudeConfig{
-			APIKey:  "sk-test-key",
-			BaseURL: "https://api.anthropic.com",
-			ModelID: "claude-4-sonnet-20250522",
+			APIKey:      "sk-test-key",
+			BaseURL:     "https://api.anthropic.com",
+			ModelID:     "claude-4-sonnet-20250522",
+			MaxTokens:   8192,
+			Temperature: 0.3,
 		},
 	}
 
