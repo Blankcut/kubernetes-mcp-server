@@ -3,7 +3,7 @@ module github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp
 go 1.20
 
 require (
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v2 v2.4.0
