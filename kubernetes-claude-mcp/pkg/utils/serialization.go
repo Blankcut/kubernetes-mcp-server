@@ -29,11 +29,11 @@ func ToMap(v interface{}) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal to JSON: %w", err)
 	}
-	
+
 	var result map[string]interface{}
 	if err := json.Unmarshal(jsonBytes, &result); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal to map: %w", err)
 	}
-	
+
 	return result, nil
 }

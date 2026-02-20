@@ -6,35 +6,35 @@ import (
 
 // ArgoApplication represents an ArgoCD application
 type ArgoApplication struct {
-    // These fields might need adjustment based on the actual API response
-    Metadata struct {
-        Name      string            `json:"name"`
-        Namespace string            `json:"namespace"`
-        Labels    map[string]string `json:"labels,omitempty"`
-    } `json:"metadata"`
-    Spec struct {
-        Source struct {
-            RepoURL        string `json:"repoURL"`
-            Path           string `json:"path,omitempty"`
-            TargetRevision string `json:"targetRevision,omitempty"`
-            Chart          string `json:"chart,omitempty"`
-        } `json:"source"`
-        Destination struct {
-            Server    string `json:"server"`
-            Namespace string `json:"namespace"`
-        } `json:"destination"`
-    } `json:"spec"`
-    Status struct {
-        Sync struct {
-            Status   string `json:"status"`
-            Revision string `json:"revision,omitempty"`
-        } `json:"sync"`
-        Health struct {
-            Status string `json:"status"`
-        } `json:"health"`
-        Resources []ArgoResourceStatus `json:"resources,omitempty"`
-    } `json:"status"`
-    Name string `json:"name"`
+	// These fields might need adjustment based on the actual API response
+	Metadata struct {
+		Name      string            `json:"name"`
+		Namespace string            `json:"namespace"`
+		Labels    map[string]string `json:"labels,omitempty"`
+	} `json:"metadata"`
+	Spec struct {
+		Source struct {
+			RepoURL        string `json:"repoURL"`
+			Path           string `json:"path,omitempty"`
+			TargetRevision string `json:"targetRevision,omitempty"`
+			Chart          string `json:"chart,omitempty"`
+		} `json:"source"`
+		Destination struct {
+			Server    string `json:"server"`
+			Namespace string `json:"namespace"`
+		} `json:"destination"`
+	} `json:"spec"`
+	Status struct {
+		Sync struct {
+			Status   string `json:"status"`
+			Revision string `json:"revision,omitempty"`
+		} `json:"sync"`
+		Health struct {
+			Status string `json:"status"`
+		} `json:"health"`
+		Resources []ArgoResourceStatus `json:"resources,omitempty"`
+	} `json:"status"`
+	Name string `json:"name"`
 }
 
 // ArgoResourceStatus represents the status of a resource managed by ArgoCD

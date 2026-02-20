@@ -23,7 +23,7 @@ func NewTroubleshootCorrelator(gitOpsCorrelator *GitOpsCorrelator, k8sClient *k8
 	if logger == nil {
 		logger = logging.NewLogger().Named("troubleshoot")
 	}
-	
+
 	return &TroubleshootCorrelator{
 		gitOpsCorrelator: gitOpsCorrelator,
 		k8sClient:        k8sClient,
@@ -34,48 +34,48 @@ func NewTroubleshootCorrelator(gitOpsCorrelator *GitOpsCorrelator, k8sClient *k8
 // TroubleshootResource analyzes a resource for common issues
 func (tc *TroubleshootCorrelator) TroubleshootResource(ctx context.Context, namespace, kind, name string) (*models.TroubleshootResult, error) {
 	tc.logger.Info("Troubleshooting resource", "kind", kind, "name", name, "namespace", namespace)
-	
+
 	// First, trace the resource deployment
 	resourceContext, err := tc.gitOpsCorrelator.TraceResourceDeployment(ctx, namespace, kind, name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to trace resource deployment: %w", err)
 	}
-	
+
 	// Get the raw resource for detailed analysis
 	resource, err := tc.k8sClient.GetResource(ctx, kind, namespace, name)
 	if err != nil {
 		tc.logger.Warn("Failed to get resource for detailed analysis", "error", err)
 	}
-	
+
 	// Initialize troubleshooting result
 	result := &models.TroubleshootResult{
 		ResourceContext: resourceContext,
 		Issues:          []models.Issue{},
 		Recommendations: []string{},
 	}
-	
+
 	// Analyze Kubernetes events for issues
 	tc.analyzeKubernetesEvents(resourceContext, result)
-	
+
 	// Analyze resource status and conditions if resource was retrieved
 	if resource != nil {
 		// Pod-specific analysis
 		if strings.EqualFold(kind, "pod") {
 			tc.analyzePodStatus(ctx, resource, result)
 		}
-		
+
 		// Deployment-specific analysis
 		if strings.EqualFold(kind, "deployment") {
 			tc.analyzeDeploymentStatus(resource, result)
 		}
 	}
-	
+
 	// Analyze ArgoCD sync status
 	tc.analyzeArgoStatus(resourceContext, result)
-	
+
 	// Analyze GitLab pipeline status
 	tc.analyzeGitLabStatus(resourceContext, result)
-	
+
 	// Check if resource is healthy
 	if len(result.Issues) == 0 && resource != nil && !tc.isResourceHealthy(resource) {
 		issue := models.Issue{
@@ -87,30 +87,30 @@ func (tc *TroubleshootCorrelator) TroubleshootResource(ctx context.Context, name
 		}
 		result.Issues = append(result.Issues, issue)
 	}
-	
+
 	// Generate recommendations based on issues
 	tc.generateRecommendations(result)
-	
-	tc.logger.Info("Troubleshooting completed", 
-		"kind", kind, 
-		"name", name, 
+
+	tc.logger.Info("Troubleshooting completed",
+		"kind", kind,
+		"name", name,
 		"namespace", namespace,
 		"issueCount", len(result.Issues),
 		"recommendationCount", len(result.Recommendations))
-	
+
 	return result, nil
 }
 
 // isResourceHealthy checks if a resource is in a healthy state
 func (tc *TroubleshootCorrelator) isResourceHealthy(resource *unstructured.Unstructured) bool {
 	kind := resource.GetKind()
-	
+
 	// Pod health check
 	if strings.EqualFold(kind, "pod") {
 		phase, found, _ := unstructured.NestedString(resource.Object, "status", "phase")
 		return found && phase == "Running"
 	}
-	
+
 	// Deployment health check
 	if strings.EqualFold(kind, "deployment") {
 		// Check if available replicas match desired replicas
@@ -118,7 +118,7 @@ func (tc *TroubleshootCorrelator) isResourceHealthy(resource *unstructured.Unstr
 		availableReplicas, found2, _ := unstructured.NestedInt64(resource.Object, "status", "availableReplicas")
 		return found1 && found2 && desiredReplicas == availableReplicas && availableReplicas > 0
 	}
-	
+
 	// Default: assume healthy
 	return true
 }
@@ -129,7 +129,7 @@ func (tc *TroubleshootCorrelator) analyzeDeploymentStatus(deployment *unstructur
 	desiredReplicas, found1, _ := unstructured.NestedInt64(deployment.Object, "spec", "replicas")
 	availableReplicas, found2, _ := unstructured.NestedInt64(deployment.Object, "status", "availableReplicas")
 	readyReplicas, found3, _ := unstructured.NestedInt64(deployment.Object, "status", "readyReplicas")
-	
+
 	if !found1 || !found2 || availableReplicas < desiredReplicas {
 		issue := models.Issue{
 			Source:      "Kubernetes",
@@ -140,7 +140,7 @@ func (tc *TroubleshootCorrelator) analyzeDeploymentStatus(deployment *unstructur
 		}
 		result.Issues = append(result.Issues, issue)
 	}
-	
+
 	if !found1 || !found3 || readyReplicas < desiredReplicas {
 		issue := models.Issue{
 			Source:      "Kubernetes",
@@ -151,7 +151,7 @@ func (tc *TroubleshootCorrelator) analyzeDeploymentStatus(deployment *unstructur
 		}
 		result.Issues = append(result.Issues, issue)
 	}
-	
+
 	// Check deployment conditions
 	conditions, found, _ := unstructured.NestedSlice(deployment.Object, "status", "conditions")
 	if found {
@@ -160,12 +160,12 @@ func (tc *TroubleshootCorrelator) analyzeDeploymentStatus(deployment *unstructur
 			if !ok {
 				continue
 			}
-			
+
 			conditionType, _, _ := unstructured.NestedString(condition, "type")
 			status, _, _ := unstructured.NestedString(condition, "status")
 			reason, _, _ := unstructured.NestedString(condition, "reason")
 			message, _, _ := unstructured.NestedString(condition, "message")
-			
+
 			if conditionType == "Available" && status != "True" {
 				issue := models.Issue{
 					Source:      "Kubernetes",
@@ -176,7 +176,7 @@ func (tc *TroubleshootCorrelator) analyzeDeploymentStatus(deployment *unstructur
 				}
 				result.Issues = append(result.Issues, issue)
 			}
-			
+
 			if conditionType == "Progressing" && status != "True" {
 				issue := models.Issue{
 					Source:      "Kubernetes",
@@ -203,7 +203,7 @@ func (tc *TroubleshootCorrelator) analyzePodStatus(ctx context.Context, pod *uns
 			Title:       "Pod Not Running",
 			Description: fmt.Sprintf("Pod is in %s state", phase),
 		}
-		
+
 		if phase == "Pending" {
 			issue.Title = "Pod Pending"
 			issue.Description = "Pod is still in Pending state and hasn't started running"
@@ -211,10 +211,10 @@ func (tc *TroubleshootCorrelator) analyzePodStatus(ctx context.Context, pod *uns
 			issue.Severity = "Error"
 			issue.Title = "Pod Failed"
 		}
-		
+
 		result.Issues = append(result.Issues, issue)
 	}
-	
+
 	// Check pod conditions
 	conditions, found, _ := unstructured.NestedSlice(pod.Object, "status", "conditions")
 	if found {
@@ -223,10 +223,10 @@ func (tc *TroubleshootCorrelator) analyzePodStatus(ctx context.Context, pod *uns
 			if !ok {
 				continue
 			}
-			
+
 			conditionType, _, _ := unstructured.NestedString(condition, "type")
 			status, _, _ := unstructured.NestedString(condition, "status")
-			
+
 			if conditionType == "PodScheduled" && status != "True" {
 				issue := models.Issue{
 					Source:      "Kubernetes",
@@ -237,7 +237,7 @@ func (tc *TroubleshootCorrelator) analyzePodStatus(ctx context.Context, pod *uns
 				}
 				result.Issues = append(result.Issues, issue)
 			}
-			
+
 			if conditionType == "Initialized" && status != "True" {
 				issue := models.Issue{
 					Source:      "Kubernetes",
@@ -248,7 +248,7 @@ func (tc *TroubleshootCorrelator) analyzePodStatus(ctx context.Context, pod *uns
 				}
 				result.Issues = append(result.Issues, issue)
 			}
-			
+
 			if conditionType == "ContainersReady" && status != "True" {
 				issue := models.Issue{
 					Source:      "Kubernetes",
@@ -259,7 +259,7 @@ func (tc *TroubleshootCorrelator) analyzePodStatus(ctx context.Context, pod *uns
 				}
 				result.Issues = append(result.Issues, issue)
 			}
-			
+
 			if conditionType == "Ready" && status != "True" {
 				issue := models.Issue{
 					Source:      "Kubernetes",
@@ -272,31 +272,31 @@ func (tc *TroubleshootCorrelator) analyzePodStatus(ctx context.Context, pod *uns
 			}
 		}
 	}
-	
+
 	// Check container statuses
 	containerStatuses, found, _ := unstructured.NestedSlice(pod.Object, "status", "containerStatuses")
 	if found {
 		tc.analyzeContainerStatuses(containerStatuses, false, result)
 	}
-	
+
 	// Check init container statuses if they exist
 	initContainerStatuses, found, _ := unstructured.NestedSlice(pod.Object, "status", "initContainerStatuses")
 	if found {
 		tc.analyzeContainerStatuses(initContainerStatuses, true, result)
 	}
-	
+
 	// Check for volume issues
 	volumes, found, _ := unstructured.NestedSlice(pod.Object, "spec", "volumes")
 	if found {
 		// Track PVC usage
 		pvcVolumes := []string{}
-		
+
 		for _, v := range volumes {
 			volume, ok := v.(map[string]interface{})
 			if !ok {
 				continue
 			}
-						
+
 			// Check for PVC volumes
 			pvc, pvcFound, _ := unstructured.NestedMap(volume, "persistentVolumeClaim")
 			if pvcFound && pvc != nil {
@@ -306,7 +306,7 @@ func (tc *TroubleshootCorrelator) analyzePodStatus(ctx context.Context, pod *uns
 				}
 			}
 		}
-		
+
 		// If PVC volumes found, check their status
 		if len(pvcVolumes) > 0 {
 			for _, pvcName := range pvcVolumes {
@@ -322,7 +322,7 @@ func (tc *TroubleshootCorrelator) analyzePodStatus(ctx context.Context, pod *uns
 					result.Issues = append(result.Issues, issue)
 					continue
 				}
-				
+
 				phase, phaseFound, _ := unstructured.NestedString(pvc.Object, "status", "phase")
 				if !phaseFound || phase != "Bound" {
 					issue := models.Issue{
@@ -345,17 +345,17 @@ func (tc *TroubleshootCorrelator) analyzeContainerStatuses(statuses []interface{
 	if isInit {
 		containerType = "Init Container"
 	}
-	
+
 	for _, cs := range statuses {
 		containerStatus, ok := cs.(map[string]interface{})
 		if !ok {
 			continue
 		}
-		
+
 		containerName, _, _ := unstructured.NestedString(containerStatus, "name")
 		ready, _, _ := unstructured.NestedBool(containerStatus, "ready")
 		restartCount, _, _ := unstructured.NestedInt64(containerStatus, "restartCount")
-		
+
 		if !ready {
 			// Check for specific container state
 			state, stateExists, _ := unstructured.NestedMap(containerStatus, "state")
@@ -364,17 +364,17 @@ func (tc *TroubleshootCorrelator) analyzeContainerStatuses(statuses []interface{
 				if waitingExists && waitingState != nil {
 					reason, reasonFound, _ := unstructured.NestedString(waitingState, "reason")
 					message, messageFound, _ := unstructured.NestedString(waitingState, "message")
-					
+
 					reasonStr := ""
 					if reasonFound {
 						reasonStr = reason
 					}
-					
+
 					messageStr := ""
 					if messageFound {
 						messageStr = message
 					}
-					
+
 					issue := models.Issue{
 						Source:      "Kubernetes",
 						Category:    "ContainerWaiting",
@@ -382,7 +382,7 @@ func (tc *TroubleshootCorrelator) analyzeContainerStatuses(statuses []interface{
 						Title:       fmt.Sprintf("%s %s Waiting", containerType, containerName),
 						Description: fmt.Sprintf("%s is waiting: %s - %s", containerType, reasonStr, messageStr),
 					}
-					
+
 					if reason == "CrashLoopBackOff" {
 						issue.Category = "CrashLoopBackOff"
 						issue.Severity = "Error"
@@ -395,31 +395,31 @@ func (tc *TroubleshootCorrelator) analyzeContainerStatuses(statuses []interface{
 						issue.Title = fmt.Sprintf("%s Still Initializing", containerType)
 						issue.Description = fmt.Sprintf("%s is still being created or initialized", containerType)
 					}
-					
+
 					result.Issues = append(result.Issues, issue)
 				}
-				
+
 				terminatedState, terminatedExists, _ := unstructured.NestedMap(state, "terminated")
 				if terminatedExists && terminatedState != nil {
 					reason, reasonFound, _ := unstructured.NestedString(terminatedState, "reason")
 					exitCode, exitCodeFound, _ := unstructured.NestedInt64(terminatedState, "exitCode")
 					message, messageFound, _ := unstructured.NestedString(terminatedState, "message")
-					
+
 					reasonStr := ""
 					if reasonFound {
 						reasonStr = reason
 					}
-					
+
 					messageStr := ""
 					if messageFound {
 						messageStr = message
 					}
-					
+
 					var exitCodeVal int64 = 0
 					if exitCodeFound {
 						exitCodeVal = exitCode
 					}
-					
+
 					if exitCodeVal != 0 {
 						issue := models.Issue{
 							Source:      "Kubernetes",
@@ -433,7 +433,7 @@ func (tc *TroubleshootCorrelator) analyzeContainerStatuses(statuses []interface{
 				}
 			}
 		}
-		
+
 		if restartCount > 3 {
 			issue := models.Issue{
 				Source:      "Kubernetes",
@@ -457,34 +457,34 @@ func (tc *TroubleshootCorrelator) analyzeKubernetesEvents(rc models.ResourceCont
 				Severity:    "Warning",
 				Description: fmt.Sprintf("%s: %s", event.Reason, event.Message),
 			}
-			
+
 			// Categorize common issues
 			switch {
 			case strings.Contains(event.Reason, "Failed") && strings.Contains(event.Message, "ImagePull"):
 				issue.Category = "ImagePullError"
 				issue.Title = "Image Pull Failure"
-			
+
 			case strings.Contains(event.Reason, "Unhealthy"):
 				issue.Category = "HealthCheckFailure"
 				issue.Title = "Health Check Failure"
-			
+
 			case strings.Contains(event.Message, "memory"):
 				issue.Category = "ResourceIssue"
 				issue.Title = "Memory Resource Issue"
-				
+
 			case strings.Contains(event.Message, "cpu"):
 				issue.Category = "ResourceIssue"
 				issue.Title = "CPU Resource Issue"
-				
+
 			case strings.Contains(event.Reason, "BackOff"):
 				issue.Category = "CrashLoopBackOff"
 				issue.Title = "Container Crash Loop"
-				
+
 			default:
 				issue.Category = "OtherWarning"
 				issue.Title = "Kubernetes Warning"
 			}
-			
+
 			result.Issues = append(result.Issues, issue)
 		}
 	}
@@ -496,7 +496,7 @@ func (tc *TroubleshootCorrelator) analyzeArgoStatus(rc models.ResourceContext, r
 		// No ArgoCD application managing this resource
 		return
 	}
-	
+
 	// Check sync status
 	if rc.ArgoSyncStatus != "Synced" {
 		issue := models.Issue{
@@ -508,7 +508,7 @@ func (tc *TroubleshootCorrelator) analyzeArgoStatus(rc models.ResourceContext, r
 		}
 		result.Issues = append(result.Issues, issue)
 	}
-	
+
 	// Check health status
 	if rc.ArgoHealthStatus != "Healthy" {
 		issue := models.Issue{
@@ -520,7 +520,7 @@ func (tc *TroubleshootCorrelator) analyzeArgoStatus(rc models.ResourceContext, r
 		}
 		result.Issues = append(result.Issues, issue)
 	}
-	
+
 	// Check for recent sync failures
 	for _, history := range rc.ArgoSyncHistory {
 		if history.Status == "Failed" {
@@ -543,14 +543,14 @@ func (tc *TroubleshootCorrelator) analyzeGitLabStatus(rc models.ResourceContext,
 		// No GitLab project information
 		return
 	}
-	
+
 	// Check last pipeline status
 	if rc.LastPipeline != nil && rc.LastPipeline.Status != "success" {
 		severity := "Warning"
 		if rc.LastPipeline.Status == "failed" {
 			severity = "Error"
 		}
-		
+
 		issue := models.Issue{
 			Source:      "GitLab",
 			Category:    "PipelineIssue",
@@ -560,14 +560,14 @@ func (tc *TroubleshootCorrelator) analyzeGitLabStatus(rc models.ResourceContext,
 		}
 		result.Issues = append(result.Issues, issue)
 	}
-	
+
 	// Check last deployment status
 	if rc.LastDeployment != nil && rc.LastDeployment.Status != "success" {
 		severity := "Warning"
 		if rc.LastDeployment.Status == "failed" {
 			severity = "Error"
 		}
-		
+
 		issue := models.Issue{
 			Source:      "GitLab",
 			Category:    "DeploymentIssue",
@@ -581,72 +581,71 @@ func (tc *TroubleshootCorrelator) analyzeGitLabStatus(rc models.ResourceContext,
 
 // generateRecommendations creates recommendations based on identified issues
 func (tc *TroubleshootCorrelator) generateRecommendations(result *models.TroubleshootResult) {
-    // Update the original implementation to include more recommendations
-    recommendationMap := make(map[string]bool)
-    
-    for _, issue := range result.Issues {
-        switch issue.Category {
-        case "ImagePullError":
-            recommendationMap["Check image name and credentials for accessing private registries."] = true
-            recommendationMap["Verify that the image tag exists in the registry."] = true
-            
-        case "HealthCheckFailure":
-            recommendationMap["Review liveness and readiness probe configuration."] = true
-            recommendationMap["Check application logs for errors during startup."] = true
-            
-        case "ResourceIssue":
-            recommendationMap["Review resource requests and limits in the deployment."] = true
-            recommendationMap["Monitor resource usage to determine appropriate values."] = true
-            
-        case "CrashLoopBackOff":
-            recommendationMap["Check container logs for errors."] = true
-            recommendationMap["Verify environment variables and configuration."] = true
-            
-        case "SyncIssue", "SyncFailure":
-            recommendationMap["Check ArgoCD application manifest for errors."] = true
-            recommendationMap["Verify that the target revision exists in the Git repository."] = true
-            
-        case "PipelineIssue":
-            recommendationMap["Review GitLab pipeline logs for errors."] = true
-            recommendationMap["Check if the pipeline configuration is valid."] = true
-            
-        case "DeploymentIssue":
-            recommendationMap["Check GitLab deployment job logs for errors."] = true
-            recommendationMap["Verify deployment environment configuration."] = true
-            
-        case "PodNotRunning", "PodNotReady", "PodInitializing":
-            recommendationMap["Check pod events for scheduling or initialization issues."] = true
-            recommendationMap["Examine init container logs for errors."] = true
-            
-        case "InitializationIssue":
-            recommendationMap["Check init container logs for errors."] = true
-            recommendationMap["Verify that volumes can be mounted properly."] = true
-            
-        case "ContainerReadinessIssue":
-            recommendationMap["Review readiness probe configuration."] = true
-            recommendationMap["Check container logs for application startup issues."] = true
-            
-        case "VolumeIssue":
-            recommendationMap["Verify that PersistentVolumeClaims are bound."] = true
-            recommendationMap["Check if storage classes are properly configured."] = true
-            recommendationMap["Ensure sufficient storage space is available on the nodes."] = true
-            
-        case "SchedulingIssue":
-            recommendationMap["Check if nodes have sufficient resources for the pod."] = true
-            recommendationMap["Verify that node selectors or taints are not preventing scheduling."] = true
-        }
-    }
-    
-    // Add generic recommendations if no specific issues found
-    if len(result.Issues) == 0 {
-        recommendationMap["Check pod logs for errors."] = true
-        recommendationMap["Examine Kubernetes events for the resource."] = true
-        recommendationMap["Verify network connectivity between components."] = true
-    }
-    
-    // Convert map to slice
-    for rec := range recommendationMap {
-        result.Recommendations = append(result.Recommendations, rec)
-    }
-}
+	// Update the original implementation to include more recommendations
+	recommendationMap := make(map[string]bool)
 
+	for _, issue := range result.Issues {
+		switch issue.Category {
+		case "ImagePullError":
+			recommendationMap["Check image name and credentials for accessing private registries."] = true
+			recommendationMap["Verify that the image tag exists in the registry."] = true
+
+		case "HealthCheckFailure":
+			recommendationMap["Review liveness and readiness probe configuration."] = true
+			recommendationMap["Check application logs for errors during startup."] = true
+
+		case "ResourceIssue":
+			recommendationMap["Review resource requests and limits in the deployment."] = true
+			recommendationMap["Monitor resource usage to determine appropriate values."] = true
+
+		case "CrashLoopBackOff":
+			recommendationMap["Check container logs for errors."] = true
+			recommendationMap["Verify environment variables and configuration."] = true
+
+		case "SyncIssue", "SyncFailure":
+			recommendationMap["Check ArgoCD application manifest for errors."] = true
+			recommendationMap["Verify that the target revision exists in the Git repository."] = true
+
+		case "PipelineIssue":
+			recommendationMap["Review GitLab pipeline logs for errors."] = true
+			recommendationMap["Check if the pipeline configuration is valid."] = true
+
+		case "DeploymentIssue":
+			recommendationMap["Check GitLab deployment job logs for errors."] = true
+			recommendationMap["Verify deployment environment configuration."] = true
+
+		case "PodNotRunning", "PodNotReady", "PodInitializing":
+			recommendationMap["Check pod events for scheduling or initialization issues."] = true
+			recommendationMap["Examine init container logs for errors."] = true
+
+		case "InitializationIssue":
+			recommendationMap["Check init container logs for errors."] = true
+			recommendationMap["Verify that volumes can be mounted properly."] = true
+
+		case "ContainerReadinessIssue":
+			recommendationMap["Review readiness probe configuration."] = true
+			recommendationMap["Check container logs for application startup issues."] = true
+
+		case "VolumeIssue":
+			recommendationMap["Verify that PersistentVolumeClaims are bound."] = true
+			recommendationMap["Check if storage classes are properly configured."] = true
+			recommendationMap["Ensure sufficient storage space is available on the nodes."] = true
+
+		case "SchedulingIssue":
+			recommendationMap["Check if nodes have sufficient resources for the pod."] = true
+			recommendationMap["Verify that node selectors or taints are not preventing scheduling."] = true
+		}
+	}
+
+	// Add generic recommendations if no specific issues found
+	if len(result.Issues) == 0 {
+		recommendationMap["Check pod logs for errors."] = true
+		recommendationMap["Examine Kubernetes events for the resource."] = true
+		recommendationMap["Verify network connectivity between components."] = true
+	}
+
+	// Convert map to slice
+	for rec := range recommendationMap {
+		result.Recommendations = append(result.Recommendations, rec)
+	}
+}

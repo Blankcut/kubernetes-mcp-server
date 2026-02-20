@@ -11,7 +11,7 @@ import (
 func TestLogging_NewLogger(t *testing.T) {
 	logger := logging.NewLogger()
 	assert.NotNil(t, logger)
-	
+
 	// Test that we can log without errors
 	logger.Info("test message")
 	logger.Debug("debug message")
@@ -26,6 +26,7 @@ func TestConfig_Validate_Valid(t *testing.T) {
 		},
 		Claude: config.ClaudeConfig{
 			APIKey:  "sk-test-key",
+			BaseURL: "https://api.anthropic.com",
 			ModelID: "claude-4-sonnet-20250522",
 		},
 	}

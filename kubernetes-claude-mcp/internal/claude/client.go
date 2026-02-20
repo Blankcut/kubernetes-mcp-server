@@ -64,7 +64,7 @@ func NewClient(cfg ClaudeConfig, logger *logging.Logger) *Client {
 	if logger == nil {
 		logger = logging.NewLogger().Named("claude")
 	}
-	
+
 	return &Client{
 		apiKey:      cfg.APIKey,
 		baseURL:     cfg.BaseURL,
@@ -89,14 +89,14 @@ type ClaudeConfig struct {
 
 // Complete sends a completion request to the Claude API
 func (c *Client) Complete(ctx context.Context, messages []Message) (string, error) {
-	c.logger.Debug("Sending completion request", 
-		"model", c.modelID, 
+	c.logger.Debug("Sending completion request",
+		"model", c.modelID,
 		"messageCount", len(messages))
-	
+
 	// Extract system message if present
 	var systemPrompt string
 	var userMessages []Message
-	
+
 	for _, msg := range messages {
 		if msg.Role == "system" {
 			systemPrompt = msg.Content
@@ -104,7 +104,7 @@ func (c *Client) Complete(ctx context.Context, messages []Message) (string, erro
 			userMessages = append(userMessages, msg)
 		}
 	}
-	
+
 	reqBody := CompletionRequest{
 		Model:       c.modelID,
 		System:      systemPrompt,
@@ -160,10 +160,10 @@ func (c *Client) Complete(ctx context.Context, messages []Message) (string, erro
 		}
 	}
 
-	c.logger.Debug("Received completion response", 
-		"model", completionResponse.Model, 
+	c.logger.Debug("Received completion response",
+		"model", completionResponse.Model,
 		"inputTokens", completionResponse.Usage.InputTokens,
 		"outputTokens", completionResponse.Usage.OutputTokens)
-	
+
 	return responseText, nil
 }

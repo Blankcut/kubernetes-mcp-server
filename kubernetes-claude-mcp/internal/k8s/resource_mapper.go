@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	
+
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
 )
 
@@ -31,11 +31,11 @@ type ResourceRelationship struct {
 
 // NamespaceTopology represents the topology of resources in a namespace
 type NamespaceTopology struct {
-	Namespace    string                         `json:"namespace"`
-	Resources    map[string][]string            `json:"resources"`
-	Relationships []ResourceRelationship        `json:"relationships"`
-	Metrics      map[string]map[string]int      `json:"metrics"`
-	Health       map[string]map[string]string   `json:"health"`
+	Namespace     string                       `json:"namespace"`
+	Resources     map[string][]string          `json:"resources"`
+	Relationships []ResourceRelationship       `json:"relationships"`
+	Metrics       map[string]map[string]int    `json:"metrics"`
+	Health        map[string]map[string]string `json:"health"`
 }
 
 // NewResourceMapper creates a new resource mapper
@@ -49,14 +49,14 @@ func NewResourceMapper(client *Client) *ResourceMapper {
 // GetNamespaceTopology maps all resources and their relationships in a namespace
 func (m *ResourceMapper) GetNamespaceTopology(ctx context.Context, namespace string) (*NamespaceTopology, error) {
 	m.logger.Info("Mapping namespace topology", "namespace", namespace)
-	
+
 	// Initialize topology
 	topology := &NamespaceTopology{
-		Namespace:    namespace,
-		Resources:    make(map[string][]string),
+		Namespace:     namespace,
+		Resources:     make(map[string][]string),
 		Relationships: []ResourceRelationship{},
-		Metrics:      make(map[string]map[string]int),
-		Health:       make(map[string]map[string]string),
+		Metrics:       make(map[string]map[string]int),
+		Health:        make(map[string]map[string]string),
 	}
 
 	// Discover all available resource types
@@ -90,9 +90,9 @@ func (m *ResourceMapper) GetNamespaceTopology(ctx context.Context, namespace str
 			m.logger.Debug("Listing resources", "namespace", namespace, "resource", r.Name)
 			list, err := m.client.dynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
 			if err != nil {
-				m.logger.Warn("Failed to list resources", 
-					"namespace", namespace, 
-					"resource", r.Name, 
+				m.logger.Warn("Failed to list resources",
+					"namespace", namespace,
+					"resource", r.Name,
 					"error", err)
 				continue
 			}
@@ -102,15 +102,15 @@ func (m *ResourceMapper) GetNamespaceTopology(ctx context.Context, namespace str
 				topology.Resources[r.Kind] = make([]string, len(list.Items))
 				topology.Metrics[r.Kind] = map[string]int{"count": len(list.Items)}
 				topology.Health[r.Kind] = make(map[string]string)
-				
+
 				for i, item := range list.Items {
 					topology.Resources[r.Kind][i] = item.GetName()
-					
+
 					// Determine health status
 					health := m.determineResourceHealth(&item)
 					topology.Health[r.Kind][item.GetName()] = health
 				}
-				
+
 				// Find relationships for this resource type
 				relationships := m.findRelationships(ctx, list.Items, namespace)
 				topology.Relationships = append(topology.Relationships, relationships...)
@@ -118,11 +118,11 @@ func (m *ResourceMapper) GetNamespaceTopology(ctx context.Context, namespace str
 		}
 	}
 
-	m.logger.Info("Namespace topology mapped", 
-		"namespace", namespace, 
+	m.logger.Info("Namespace topology mapped",
+		"namespace", namespace,
 		"resourceTypes", len(topology.Resources),
 		"relationships", len(topology.Relationships))
-	
+
 	return topology, nil
 }
 
@@ -132,67 +132,67 @@ func (m *ResourceMapper) GetResourceGraph(ctx context.Context, namespace string)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert topology to graph format
 	graph := map[string]interface{}{
 		"nodes": []map[string]interface{}{},
 		"edges": []map[string]interface{}{},
 	}
-	
+
 	// Add nodes
 	nodeIndex := make(map[string]int)
 	nodeCount := 0
-	
+
 	for kind, resources := range topology.Resources {
 		for _, name := range resources {
 			health := "unknown"
 			if h, ok := topology.Health[kind][name]; ok {
 				health = h
 			}
-			
+
 			node := map[string]interface{}{
-				"id":       nodeCount,
-				"kind":     kind,
-				"name":     name,
-				"health":   health,
-				"group":    kind,
+				"id":     nodeCount,
+				"kind":   kind,
+				"name":   name,
+				"health": health,
+				"group":  kind,
 			}
-			
+
 			// Add to nodes array
 			graph["nodes"] = append(graph["nodes"].([]map[string]interface{}), node)
-			
+
 			// Save index for edge creation
 			nodeIndex[fmt.Sprintf("%s/%s", kind, name)] = nodeCount
 			nodeCount++
 		}
 	}
-	
+
 	// Add edges
 	for _, rel := range topology.Relationships {
 		sourceKey := fmt.Sprintf("%s/%s", rel.SourceKind, rel.SourceName)
 		targetKey := fmt.Sprintf("%s/%s", rel.TargetKind, rel.TargetName)
-		
+
 		sourceIdx, sourceOk := nodeIndex[sourceKey]
 		targetIdx, targetOk := nodeIndex[targetKey]
-		
+
 		if sourceOk && targetOk {
 			edge := map[string]interface{}{
-				"source":      sourceIdx,
-				"target":      targetIdx,
+				"source":       sourceIdx,
+				"target":       targetIdx,
 				"relationship": rel.RelationType,
 			}
-			
+
 			graph["edges"] = append(graph["edges"].([]map[string]interface{}), edge)
 		}
 	}
-	
+
 	return graph, nil
 }
 
 // findRelationships discovers relationships between resources
 func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unstructured.Unstructured, namespace string) []ResourceRelationship {
 	var relationships []ResourceRelationship
-	
+
 	for _, resource := range resources {
 		// Check owner references
 		for _, ownerRef := range resource.GetOwnerReferences() {
@@ -207,7 +207,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 			}
 			relationships = append(relationships, rel)
 		}
-		
+
 		// Check for Pod -> Service relationships (via labels/selectors)
 		if resource.GetKind() == "Service" {
 			selector, found, _ := unstructured.NestedMap(resource.Object, "spec", "selector")
@@ -216,7 +216,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 				pods, err := m.client.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 					LabelSelector: m.labelsToSelector(selector),
 				})
-				
+
 				if err == nil {
 					for _, pod := range pods.Items {
 						rel := ResourceRelationship{
@@ -233,7 +233,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 				}
 			}
 		}
-		
+
 		// Check for ConfigMap/Secret references in Pods
 		if resource.GetKind() == "Pod" {
 			// Check volumes for ConfigMap references
@@ -244,7 +244,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 					if !ok {
 						continue
 					}
-					
+
 					// Check for ConfigMap references
 					if configMap, hasConfigMap, _ := unstructured.NestedMap(volume, "configMap"); hasConfigMap {
 						if cmName, hasName, _ := unstructured.NestedString(configMap, "name"); hasName {
@@ -260,7 +260,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 							relationships = append(relationships, rel)
 						}
 					}
-					
+
 					// Check for Secret references
 					if secret, hasSecret, _ := unstructured.NestedMap(volume, "secret"); hasSecret {
 						if secretName, hasName, _ := unstructured.NestedString(secret, "secretName"); hasName {
@@ -278,7 +278,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 					}
 				}
 			}
-			
+
 			// Check environment variables for ConfigMap/Secret references
 			containers, found, _ := unstructured.NestedSlice(resource.Object, "spec", "containers")
 			if found {
@@ -287,7 +287,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 					if !ok {
 						continue
 					}
-					
+
 					// Check for EnvFrom references
 					envFrom, hasEnvFrom, _ := unstructured.NestedSlice(container, "envFrom")
 					if hasEnvFrom {
@@ -296,7 +296,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 							if !ok {
 								continue
 							}
-							
+
 							// Check for ConfigMap references
 							if configMap, hasConfigMap, _ := unstructured.NestedMap(envFromObj, "configMapRef"); hasConfigMap {
 								if cmName, hasName, _ := unstructured.NestedString(configMap, "name"); hasName {
@@ -312,7 +312,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 									relationships = append(relationships, rel)
 								}
 							}
-							
+
 							// Check for Secret references
 							if secret, hasSecret, _ := unstructured.NestedMap(envFromObj, "secretRef"); hasSecret {
 								if secretName, hasName, _ := unstructured.NestedString(secret, "name"); hasName {
@@ -330,7 +330,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 							}
 						}
 					}
-					
+
 					// Check individual env vars for ConfigMap/Secret references
 					env, hasEnv, _ := unstructured.NestedSlice(container, "env")
 					if hasEnv {
@@ -339,7 +339,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 							if !ok {
 								continue
 							}
-							
+
 							// Check for ConfigMap references
 							if valueFrom, hasValueFrom, _ := unstructured.NestedMap(envVar, "valueFrom"); hasValueFrom {
 								if configMap, hasConfigMap, _ := unstructured.NestedMap(valueFrom, "configMapKeyRef"); hasConfigMap {
@@ -356,7 +356,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 										relationships = append(relationships, rel)
 									}
 								}
-								
+
 								// Check for Secret references
 								if secret, hasSecret, _ := unstructured.NestedMap(valueFrom, "secretKeyRef"); hasSecret {
 									if secretName, hasName, _ := unstructured.NestedString(secret, "name"); hasName {
@@ -378,7 +378,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 				}
 			}
 		}
-		
+
 		// Check for PVC -> PV relationships
 		if resource.GetKind() == "PersistentVolumeClaim" {
 			volumeName, found, _ := unstructured.NestedString(resource.Object, "spec", "volumeName")
@@ -395,7 +395,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 				relationships = append(relationships, rel)
 			}
 		}
-		
+
 		// Check for Ingress -> Service relationships
 		if resource.GetKind() == "Ingress" {
 			rules, found, _ := unstructured.NestedSlice(resource.Object, "spec", "rules")
@@ -405,23 +405,23 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 					if !ok {
 						continue
 					}
-					
+
 					http, found, _ := unstructured.NestedMap(rule, "http")
 					if !found {
 						continue
 					}
-					
+
 					paths, found, _ := unstructured.NestedSlice(http, "paths")
 					if !found {
 						continue
 					}
-					
+
 					for _, p := range paths {
 						path, ok := p.(map[string]interface{})
 						if !ok {
 							continue
 						}
-						
+
 						backend, found, _ := unstructured.NestedMap(path, "backend")
 						if !found {
 							// Check for newer API version format
@@ -430,7 +430,7 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 								continue
 							}
 						}
-						
+
 						serviceName, found, _ := unstructured.NestedString(backend, "name")
 						if found {
 							rel := ResourceRelationship{
@@ -449,49 +449,49 @@ func (m *ResourceMapper) findRelationships(ctx context.Context, resources []unst
 			}
 		}
 	}
-	
+
 	// Deduplicate relationships
 	deduplicatedRelationships := make([]ResourceRelationship, 0)
 	relMap := make(map[string]bool)
-	
+
 	for _, rel := range relationships {
-		key := fmt.Sprintf("%s/%s/%s/%s/%s/%s/%s", 
+		key := fmt.Sprintf("%s/%s/%s/%s/%s/%s/%s",
 			rel.SourceKind, rel.SourceName, rel.SourceNamespace,
 			rel.TargetKind, rel.TargetName, rel.TargetNamespace,
 			rel.RelationType)
-			
+
 		if _, exists := relMap[key]; !exists {
 			relMap[key] = true
 			deduplicatedRelationships = append(deduplicatedRelationships, rel)
 		}
 	}
-	
+
 	return deduplicatedRelationships
 }
 
 // labelsToSelector converts a map of labels to a selector string
 func (m *ResourceMapper) labelsToSelector(labels map[string]interface{}) string {
 	var selectors []string
-	
+
 	for key, value := range labels {
 		if strValue, ok := value.(string); ok {
 			selectors = append(selectors, fmt.Sprintf("%s=%s", key, strValue))
 		}
 	}
-	
+
 	return strings.Join(selectors, ",")
 }
 
 // determineResourceHealth determines the health status of a resource
 func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured) string {
 	kind := obj.GetKind()
-	
+
 	// Check common status fields
 	status, found, _ := unstructured.NestedMap(obj.Object, "status")
 	if !found {
 		return "unknown"
 	}
-	
+
 	// Check different resource types
 	switch kind {
 	case "Pod":
@@ -508,14 +508,14 @@ func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured)
 				return "unknown"
 			}
 		}
-		
+
 	case "Deployment", "StatefulSet", "DaemonSet", "ReplicaSet":
 		// Check if all replicas are available
 		replicas, foundReplicas, _ := unstructured.NestedInt64(obj.Object, "spec", "replicas")
 		if !foundReplicas {
 			replicas = 1 // Default to 1 if not specified
 		}
-		
+
 		availableReplicas, foundAvailable, _ := unstructured.NestedInt64(status, "availableReplicas")
 		if foundAvailable && availableReplicas == replicas {
 			return "healthy"
@@ -524,12 +524,12 @@ func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured)
 		} else {
 			return "unhealthy"
 		}
-		
+
 	case "Service":
 		// Services are typically healthy unless they have no endpoints
 		// We'd need to check endpoints separately
 		return "healthy"
-		
+
 	case "Ingress":
 		// Check if LoadBalancer has assigned addresses
 		ingress, found, _ := unstructured.NestedSlice(status, "loadBalancer", "ingress")
@@ -537,7 +537,7 @@ func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured)
 			return "healthy"
 		}
 		return "progressing"
-		
+
 	case "PersistentVolumeClaim":
 		phase, found, _ := unstructured.NestedString(status, "phase")
 		if found && phase == "Bound" {
@@ -547,7 +547,7 @@ func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured)
 		} else {
 			return "unhealthy"
 		}
-	
+
 	case "Job":
 		conditions, found, _ := unstructured.NestedSlice(status, "conditions")
 		if found {
@@ -556,10 +556,10 @@ func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured)
 				if !ok {
 					continue
 				}
-				
+
 				condType, typeFound, _ := unstructured.NestedString(condition, "type")
 				condStatus, statusFound, _ := unstructured.NestedString(condition, "status")
-				
+
 				if typeFound && statusFound && condType == "Complete" && condStatus == "True" {
 					return "healthy"
 				} else if typeFound && statusFound && condType == "Failed" && condStatus == "True" {
@@ -568,7 +568,7 @@ func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured)
 			}
 			return "progressing"
 		}
-		
+
 	default:
 		// For other resources, try to check common status conditions
 		conditions, found, _ := unstructured.NestedSlice(status, "conditions")
@@ -578,10 +578,10 @@ func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured)
 				if !ok {
 					continue
 				}
-				
+
 				condType, typeFound, _ := unstructured.NestedString(condition, "type")
 				condStatus, statusFound, _ := unstructured.NestedString(condition, "status")
-				
+
 				if typeFound && statusFound {
 					// Check for common condition types indicating health
 					if (condType == "Ready" || condType == "Available") && condStatus == "True" {
@@ -595,6 +595,6 @@ func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured)
 			}
 		}
 	}
-	
+
 	return "unknown"
 }

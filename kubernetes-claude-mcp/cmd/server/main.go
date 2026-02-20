@@ -105,15 +105,15 @@ func main() {
 	// Initialize GitOps correlator
 	logger.Info("Initializing GitOps correlator")
 	gitOpsCorrelator := correlator.NewGitOpsCorrelator(
-		k8sClient, 
-		argoClient, 
-		gitlabClient, 
+		k8sClient,
+		argoClient,
+		gitlabClient,
 		logger.Named("correlator"),
 	)
 
 	// Initialize troubleshoot correlator
 	troubleshootCorrelator := correlator.NewTroubleshootCorrelator(
-		gitOpsCorrelator, 
+		gitOpsCorrelator,
 		k8sClient,
 		logger.Named("troubleshoot"),
 	)
@@ -121,7 +121,7 @@ func main() {
 	// Initialize MCP protocol handler
 	logger.Info("Initializing MCP protocol handler")
 	mcpHandler := mcp.NewProtocolHandler(
-		claudeClient, 
+		claudeClient,
 		gitOpsCorrelator,
 		k8sClient,
 		logger.Named("mcp"),
@@ -130,10 +130,10 @@ func main() {
 	// Initialize API server
 	logger.Info("Initializing API server")
 	server := api.NewServer(
-		cfg.Server, 
-		k8sClient, 
-		argoClient, 
-		gitlabClient, 
+		cfg.Server,
+		k8sClient,
+		argoClient,
+		gitlabClient,
 		mcpHandler,
 		troubleshootCorrelator,
 		logger.Named("api"),
@@ -145,14 +145,14 @@ func main() {
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		sig := <-sigCh
 		logger.Info("Received shutdown signal", "signal", sig)
-		
+
 		// Create a timeout context for shutdown
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer shutdownCancel()
-		
+
 		logger.Info("Shutting down server...")
 		cancel() // Cancel the main context
-		
+
 		// Wait for server to shut down or timeout
 		<-shutdownCtx.Done()
 	}()

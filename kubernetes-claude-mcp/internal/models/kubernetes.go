@@ -2,7 +2,7 @@ package models
 
 import (
 	"time"
-	
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

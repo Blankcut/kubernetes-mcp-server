@@ -1,14 +1,14 @@
 package argocd
 
 import (
-	"io"
-    "strings"
-    "bytes"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
 )
@@ -16,7 +16,7 @@ import (
 // GetApplicationHistory returns the deployment history for an application
 func (c *Client) GetApplicationHistory(ctx context.Context, name string) ([]models.ArgoApplicationHistory, error) {
 	c.logger.Debug("Getting application history", "name", name)
-	
+
 	endpoint := fmt.Sprintf("/api/v1/applications/%s/history", url.PathEscape(name))
 	resp, err := c.doRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -38,16 +38,16 @@ func (c *Client) GetApplicationHistory(ctx context.Context, name string) ([]mode
 
 // GetApplicationLogs retrieves logs for a specific application component
 func (c *Client) GetApplicationLogs(ctx context.Context, name, podName, containerName string) ([]string, error) {
-	c.logger.Debug("Getting application logs", 
-		"application", name, 
-		"pod", podName, 
+	c.logger.Debug("Getting application logs",
+		"application", name,
+		"pod", podName,
 		"container", containerName)
-	
-	endpoint := fmt.Sprintf("/api/v1/applications/%s/pods/%s/logs?container=%s", 
-		url.PathEscape(name), 
-		url.PathEscape(podName), 
+
+	endpoint := fmt.Sprintf("/api/v1/applications/%s/pods/%s/logs?container=%s",
+		url.PathEscape(name),
+		url.PathEscape(podName),
 		url.QueryEscape(containerName))
-	
+
 	resp, err := c.doRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
@@ -68,10 +68,10 @@ func (c *Client) GetApplicationLogs(ctx context.Context, name, podName, containe
 		}
 	}
 
-	c.logger.Debug("Retrieved application logs", 
-		"application", name, 
-		"pod", podName, 
-		"container", containerName, 
+	c.logger.Debug("Retrieved application logs",
+		"application", name,
+		"pod", podName,
+		"container", containerName,
 		"lineCount", len(logs))
 	return logs, nil
 }
@@ -79,11 +79,11 @@ func (c *Client) GetApplicationLogs(ctx context.Context, name, podName, containe
 // GetApplicationRevisionMetadata gets metadata about a specific revision
 func (c *Client) GetApplicationRevisionMetadata(ctx context.Context, name, revision string) (*models.GitLabCommit, error) {
 	c.logger.Debug("Getting revision metadata", "application", name, "revision", revision)
-	
-	endpoint := fmt.Sprintf("/api/v1/applications/%s/revisions/%s/metadata", 
-		url.PathEscape(name), 
+
+	endpoint := fmt.Sprintf("/api/v1/applications/%s/revisions/%s/metadata",
+		url.PathEscape(name),
 		url.PathEscape(revision))
-	
+
 	resp, err := c.doRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
@@ -100,11 +100,11 @@ func (c *Client) GetApplicationRevisionMetadata(ctx context.Context, name, revis
 
 // SyncApplication triggers a sync operation for an application
 func (c *Client) SyncApplication(ctx context.Context, name string, revision string, prune bool, resources []string) error {
-	c.logger.Debug("Syncing application", 
-		"name", name, 
-		"revision", revision, 
+	c.logger.Debug("Syncing application",
+		"name", name,
+		"revision", revision,
 		"prune", prune)
-	
+
 	// Prepare sync request body
 	syncRequest := struct {
 		Revision  string   `json:"revision,omitempty"`
@@ -117,25 +117,25 @@ func (c *Client) SyncApplication(ctx context.Context, name string, revision stri
 		Resources: resources,
 		DryRun:    false,
 	}
-	
+
 	jsonBody, err := json.Marshal(syncRequest)
 	if err != nil {
 		return fmt.Errorf("failed to marshal sync request: %w", err)
 	}
-	
+
 	endpoint := fmt.Sprintf("/api/v1/applications/%s/sync", url.PathEscape(name))
 	resp, err := c.doRequest(ctx, http.MethodPost, endpoint, bytes.NewReader(jsonBody))
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	// Read response but we won't need to process it
 	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
-	
+
 	c.logger.Info("Application sync initiated", "name", name)
 	return nil
 }

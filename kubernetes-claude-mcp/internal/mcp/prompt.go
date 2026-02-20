@@ -17,7 +17,7 @@ func NewPromptGenerator(logger *logging.Logger) *PromptGenerator {
 	if logger == nil {
 		logger = logging.NewLogger().Named("prompt")
 	}
-	
+
 	return &PromptGenerator{
 		basePromptTemplate: defaultBasePrompt,
 		logger:             logger,
@@ -41,17 +41,17 @@ func (pg *PromptGenerator) GenerateSystemPrompt() string {
 func (pg *PromptGenerator) GenerateUserPrompt(context, query string) string {
 	// Clean up the query
 	cleanQuery := strings.TrimSpace(query)
-	
-	pg.logger.Debug("Generating user prompt", 
-		"contextLength", len(context), 
+
+	pg.logger.Debug("Generating user prompt",
+		"contextLength", len(context),
 		"queryLength", len(cleanQuery))
-	
+
 	// Build the prompt
 	prompt := "Here is the GitOps context for the Kubernetes resources you requested:\n\n"
 	prompt += context
 	prompt += "\n\nBased on this context, please answer the following question or perform the requested analysis:\n\n"
 	prompt += cleanQuery
-	
+
 	return prompt
 }
 

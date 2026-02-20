@@ -30,7 +30,7 @@ type Credentials struct {
 	Password    string
 	Certificate []byte
 	PrivateKey  []byte
-	ExpiresAt time.Time
+	ExpiresAt   time.Time
 }
 
 // IsExpired checks if the credentials are expired
@@ -39,17 +39,17 @@ func (c *Credentials) IsExpired() bool {
 	if c.ExpiresAt.IsZero() {
 		return false
 	}
-	
+
 	// Check if current time is past the expiration time
 	return time.Now().After(c.ExpiresAt)
 }
 
 // CredentialProvider manages credentials for various services
 type CredentialProvider struct {
-	mu          sync.RWMutex
-	credentials map[ServiceType]*Credentials
-	config      *config.Config
-	logger      *logging.Logger
+	mu             sync.RWMutex
+	credentials    map[ServiceType]*Credentials
+	config         *config.Config
+	logger         *logging.Logger
 	secretsManager *SecretsManager
 	vaultManager   *VaultManager
 }
@@ -57,13 +57,13 @@ type CredentialProvider struct {
 // NewCredentialProvider creates a new credential provider
 func NewCredentialProvider(cfg *config.Config) *CredentialProvider {
 	logger := logging.NewLogger().Named("auth")
-	
+
 	return &CredentialProvider{
-		credentials: make(map[ServiceType]*Credentials),
-		config:      cfg,
-		logger:      logger,
+		credentials:    make(map[ServiceType]*Credentials),
+		config:         cfg,
+		logger:         logger,
 		secretsManager: NewSecretsManager(logger),
-		vaultManager: NewVaultManager(logger),
+		vaultManager:   NewVaultManager(logger),
 	}
 }
 
@@ -98,15 +98,15 @@ func (p *CredentialProvider) GetCredentials(serviceType ServiceType) (*Credentia
 	if !ok {
 		return nil, fmt.Errorf("credentials not found for service: %s", serviceType)
 	}
-	
+
 	// Check if credentials are expired and need refresh
 	if creds.IsExpired() {
 		p.mu.RUnlock() // Release read lock
-		
+
 		// Acquire write lock for refresh
 		p.mu.Lock()
 		defer p.mu.Unlock()
-		
+
 		// Check again in case another goroutine refreshed while we were waiting
 		if creds.IsExpired() {
 			p.logger.Info("Refreshing expired credentials", "serviceType", serviceType)
@@ -145,7 +145,7 @@ func (p *CredentialProvider) loadArgoCDCredentials(ctx context.Context) error {
 			return nil
 		}
 	}
-	
+
 	// Try to load from vault if available
 	if p.vaultManager != nil && p.vaultManager.IsAvailable() {
 		creds, err := p.vaultManager.GetCredentials(ctx, "argocd")
@@ -218,7 +218,7 @@ func (p *CredentialProvider) loadGitLabCredentials(ctx context.Context) error {
 			return nil
 		}
 	}
-	
+
 	// Try to load from vault if available
 	if p.vaultManager != nil && p.vaultManager.IsAvailable() {
 		creds, err := p.vaultManager.GetCredentials(ctx, "gitlab")
@@ -269,7 +269,7 @@ func (p *CredentialProvider) loadClaudeCredentials(ctx context.Context) error {
 			return nil
 		}
 	}
-	
+
 	// Try to load from vault if available
 	if p.vaultManager != nil && p.vaultManager.IsAvailable() {
 		creds, err := p.vaultManager.GetCredentials(ctx, "claude")
@@ -332,7 +332,7 @@ func (p *CredentialProvider) refreshArgoCDToken(ctx context.Context) error {
 
 	// If using username/password, we would implement logic to get a new token
 	if creds.Username != "" && creds.Password != "" {
-		p.logger.Info("Refreshing ArgoCD token using username/password")		
+		p.logger.Info("Refreshing ArgoCD token using username/password")
 		p.logger.Info("Successfully refreshed ArgoCD token")
 		return nil
 	}
@@ -342,18 +342,18 @@ func (p *CredentialProvider) refreshArgoCDToken(ctx context.Context) error {
 
 // UpdateArgoToken updates the ArgoCD token
 func (p *CredentialProvider) UpdateArgoToken(ctx context.Context, token string) {
-    p.mu.Lock()
-    defer p.mu.Unlock()
-    
-    if creds, ok := p.credentials[ServiceArgoCD]; ok {
-        creds.Token = token
-        creds.ExpiresAt = time.Now().Add(24 * time.Hour)
-        p.logger.Info("Updated ArgoCD token")
-    } else {
-        p.credentials[ServiceArgoCD] = &Credentials{
-            Token: token,
-            ExpiresAt: time.Now().Add(24 * time.Hour),
-        }
-        p.logger.Info("Created new ArgoCD token")
-    }
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if creds, ok := p.credentials[ServiceArgoCD]; ok {
+		creds.Token = token
+		creds.ExpiresAt = time.Now().Add(24 * time.Hour)
+		p.logger.Info("Updated ArgoCD token")
+	} else {
+		p.credentials[ServiceArgoCD] = &Credentials{
+			Token:     token,
+			ExpiresAt: time.Now().Add(24 * time.Hour),
+		}
+		p.logger.Info("Created new ArgoCD token")
+	}
 }

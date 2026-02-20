@@ -1,10 +1,10 @@
 package gitlab
 
 import (
-	"io"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -14,21 +14,21 @@ import (
 // ListPipelines returns a list of pipelines for a project
 func (c *Client) ListPipelines(ctx context.Context, projectID string) ([]models.GitLabPipeline, error) {
 	c.logger.Debug("Listing pipelines", "projectID", projectID)
-	
+
 	endpoint := fmt.Sprintf("projects/%s/pipelines", url.PathEscape(projectID))
-	
+
 	// Add query parameters for pagination
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid endpoint: %w", err)
 	}
-	
+
 	q := u.Query()
 	q.Set("per_page", "20")
 	q.Set("order_by", "id")
 	q.Set("sort", "desc")
 	u.RawQuery = q.Encode()
-	
+
 	resp, err := c.doRequest(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (c *Client) ListPipelines(ctx context.Context, projectID string) ([]models.
 // GetPipeline returns details about a specific pipeline
 func (c *Client) GetPipeline(ctx context.Context, projectID string, pipelineID int) (*models.GitLabPipeline, error) {
 	c.logger.Debug("Getting pipeline", "projectID", projectID, "pipelineID", pipelineID)
-	
+
 	endpoint := fmt.Sprintf("projects/%s/pipelines/%d", url.PathEscape(projectID), pipelineID)
 	resp, err := c.doRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -66,7 +66,7 @@ func (c *Client) GetPipeline(ctx context.Context, projectID string, pipelineID i
 // GetPipelineJobs returns jobs for a specific pipeline
 func (c *Client) GetPipelineJobs(ctx context.Context, projectID string, pipelineID int) ([]models.GitLabJob, error) {
 	c.logger.Debug("Getting pipeline jobs", "projectID", projectID, "pipelineID", pipelineID)
-	
+
 	endpoint := fmt.Sprintf("projects/%s/pipelines/%d/jobs", url.PathEscape(projectID), pipelineID)
 	resp, err := c.doRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -85,25 +85,25 @@ func (c *Client) GetPipelineJobs(ctx context.Context, projectID string, pipeline
 
 // FindRecentDeployments finds recent deployments to a specific environment
 func (c *Client) FindRecentDeployments(ctx context.Context, projectID, environment string) ([]models.GitLabDeployment, error) {
-	c.logger.Debug("Finding recent deployments", 
-		"projectID", projectID, 
+	c.logger.Debug("Finding recent deployments",
+		"projectID", projectID,
 		"environment", environment)
-	
+
 	// Create endpoint with query parameters
 	endpoint := fmt.Sprintf("projects/%s/deployments", url.PathEscape(projectID))
-	
+
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid endpoint: %w", err)
 	}
-	
+
 	q := u.Query()
 	q.Set("environment", environment)
 	q.Set("order_by", "created_at")
 	q.Set("sort", "desc")
 	q.Set("per_page", "10")
 	u.RawQuery = q.Encode()
-	
+
 	resp, err := c.doRequest(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
@@ -115,9 +115,9 @@ func (c *Client) FindRecentDeployments(ctx context.Context, projectID, environme
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	c.logger.Debug("Found deployments", 
-		"projectID", projectID, 
-		"environment", environment, 
+	c.logger.Debug("Found deployments",
+		"projectID", projectID,
+		"environment", environment,
 		"count", len(deployments))
 	return deployments, nil
 }
@@ -125,7 +125,7 @@ func (c *Client) FindRecentDeployments(ctx context.Context, projectID, environme
 // GetJobLogs retrieves logs for a specific job
 func (c *Client) GetJobLogs(ctx context.Context, projectID string, jobID int) (string, error) {
 	c.logger.Debug("Getting job logs", "projectID", projectID, "jobID", jobID)
-	
+
 	endpoint := fmt.Sprintf("projects/%s/jobs/%d/trace", url.PathEscape(projectID), jobID)
 	resp, err := c.doRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {

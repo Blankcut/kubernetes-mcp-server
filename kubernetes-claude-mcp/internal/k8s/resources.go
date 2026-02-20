@@ -2,13 +2,13 @@ package k8s
 
 import (
 	"bytes"
-    "io"
 	"context"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
-	
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,10 +57,10 @@ func (c *Client) getGVR(resourceType string) (schema.GroupVersionResource, error
 
 		for _, r := range list.APIResources {
 			if strings.EqualFold(r.Name, resourceType) || strings.EqualFold(r.SingularName, resourceType) {
-				c.logger.Debug("Found resource via API discovery", 
-					"resourceType", resourceType, 
-					"group", gv.Group, 
-					"version", gv.Version, 
+				c.logger.Debug("Found resource via API discovery",
+					"resourceType", resourceType,
+					"group", gv.Group,
+					"version", gv.Version,
 					"resource", r.Name)
 				return schema.GroupVersionResource{
 					Group:    gv.Group,
@@ -77,7 +77,7 @@ func (c *Client) getGVR(resourceType string) (schema.GroupVersionResource, error
 // GetResource retrieves a specific resource by kind, namespace, and name
 func (c *Client) GetResource(ctx context.Context, kind, namespace, name string) (*unstructured.Unstructured, error) {
 	c.logger.Debug("Getting resource", "kind", kind, "namespace", namespace, "name", name)
-	
+
 	gvr, err := c.getGVR(kind)
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func (c *Client) GetResource(ctx context.Context, kind, namespace, name string) 
 // ListResources lists resources of a specific type, optionally filtered by namespace
 func (c *Client) ListResources(ctx context.Context, kind, namespace string) ([]unstructured.Unstructured, error) {
 	c.logger.Debug("Listing resources", "kind", kind, "namespace", namespace)
-	
+
 	gvr, err := c.getGVR(kind)
 	if err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func (c *Client) ListResources(ctx context.Context, kind, namespace string) ([]u
 // GetPodStatus returns detailed status information for a pod
 func (c *Client) GetPodStatus(ctx context.Context, namespace, name string) (*models.K8sPodStatus, error) {
 	c.logger.Debug("Getting pod status", "namespace", namespace, "name", name)
-	
+
 	pod, err := c.clientset.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pod: %w", err)
@@ -196,20 +196,20 @@ func (c *Client) GetPodStatus(ctx context.Context, namespace, name string) (*mod
 
 // GetPodLogs returns logs for a specific container in a pod
 func (c *Client) GetPodLogs(ctx context.Context, namespace, name, container string, tailLines int64) (string, error) {
-	c.logger.Debug("Getting pod logs", 
-		"namespace", namespace, 
-		"name", name, 
-		"container", container, 
+	c.logger.Debug("Getting pod logs",
+		"namespace", namespace,
+		"name", name,
+		"container", container,
 		"tailLines", tailLines)
-	
+
 	podLogOptions := corev1.PodLogOptions{
 		Container: container,
 	}
-	
+
 	if tailLines > 0 {
 		podLogOptions.TailLines = &tailLines
 	}
-	
+
 	req := c.clientset.CoreV1().Pods(namespace).GetLogs(name, &podLogOptions)
 	podLogs, err := req.Stream(ctx)
 	if err != nil {
@@ -228,11 +228,11 @@ func (c *Client) GetPodLogs(ctx context.Context, namespace, name, container stri
 
 // FindOwnerReferences finds the owner references for a resource
 func (c *Client) FindOwnerReferences(ctx context.Context, obj *unstructured.Unstructured) ([]unstructured.Unstructured, error) {
-	c.logger.Debug("Finding owner references", 
-		"kind", obj.GetKind(), 
-		"name", obj.GetName(), 
+	c.logger.Debug("Finding owner references",
+		"kind", obj.GetKind(),
+		"name", obj.GetName(),
 		"namespace", obj.GetNamespace())
-	
+
 	ownerRefs := obj.GetOwnerReferences()
 	if len(ownerRefs) == 0 {
 		return nil, nil
@@ -240,15 +240,15 @@ func (c *Client) FindOwnerReferences(ctx context.Context, obj *unstructured.Unst
 
 	var owners []unstructured.Unstructured
 	for _, ref := range ownerRefs {
-		c.logger.Debug("Found owner reference", 
-			"kind", ref.Kind, 
-			"name", ref.Name, 
+		c.logger.Debug("Found owner reference",
+			"kind", ref.Kind,
+			"name", ref.Name,
 			"namespace", obj.GetNamespace())
-		
+
 		gvr, err := c.getGVR(ref.Kind)
 		if err != nil {
-			c.logger.Warn("Failed to get GroupVersionResource for owner", 
-				"kind", ref.Kind, 
+			c.logger.Warn("Failed to get GroupVersionResource for owner",
+				"kind", ref.Kind,
 				"error", err)
 			continue
 		}
@@ -257,9 +257,9 @@ func (c *Client) FindOwnerReferences(ctx context.Context, obj *unstructured.Unst
 		owner, err := c.dynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, ref.Name, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
-				c.logger.Warn("Owner not found", 
-					"kind", ref.Kind, 
-					"name", ref.Name, 
+				c.logger.Warn("Owner not found",
+					"kind", ref.Kind,
+					"name", ref.Name,
 					"namespace", namespace)
 				continue
 			}
