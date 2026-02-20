@@ -28,7 +28,7 @@ func main() {
 	flag.Parse()
 
 	// Initialize logger
-	os.Setenv("LOG_LEVEL", *logLevel)
+	_ = os.Setenv("LOG_LEVEL", *logLevel)
 	logger := logging.NewLogger()
 	logger.Info("Starting Kubernetes Claude MCP server")
 

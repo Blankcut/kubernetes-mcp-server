@@ -38,7 +38,7 @@ func (c *Client) ListMergeRequests(ctx context.Context, projectID string, state 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var mergeRequests []models.GitLabMergeRequest
 	if err := json.NewDecoder(resp.Body).Decode(&mergeRequests); err != nil {
@@ -58,7 +58,7 @@ func (c *Client) GetMergeRequest(ctx context.Context, projectID string, mergeReq
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var mergeRequest models.GitLabMergeRequest
 	if err := json.NewDecoder(resp.Body).Decode(&mergeRequest); err != nil {
@@ -77,7 +77,7 @@ func (c *Client) GetMergeRequestChanges(ctx context.Context, projectID string, m
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var mergeRequest models.GitLabMergeRequest
 	if err := json.NewDecoder(resp.Body).Decode(&mergeRequest); err != nil {
@@ -96,7 +96,7 @@ func (c *Client) GetMergeRequestApprovals(ctx context.Context, projectID string,
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var approvals models.GitLabMergeRequestApproval
 	if err := json.NewDecoder(resp.Body).Decode(&approvals); err != nil {
@@ -115,7 +115,7 @@ func (c *Client) GetMergeRequestComments(ctx context.Context, projectID string, 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var comments []models.GitLabMergeRequestComment
 	if err := json.NewDecoder(resp.Body).Decode(&comments); err != nil {
@@ -135,7 +135,7 @@ func (c *Client) GetMergeRequestCommits(ctx context.Context, projectID string, m
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var commits []models.GitLabCommit
 	if err := json.NewDecoder(resp.Body).Decode(&commits); err != nil {
@@ -230,7 +230,7 @@ func (c *Client) CreateMergeRequestComment(ctx context.Context, projectID string
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var comment models.GitLabMergeRequestComment
 	if err := json.NewDecoder(resp.Body).Decode(&comment); err != nil {

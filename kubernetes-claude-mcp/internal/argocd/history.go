@@ -22,7 +22,7 @@ func (c *Client) GetApplicationHistory(ctx context.Context, name string) ([]mode
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result struct {
 		History []models.ArgoApplicationHistory `json:"history"`
@@ -52,7 +52,7 @@ func (c *Client) GetApplicationLogs(ctx context.Context, name, podName, containe
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -88,7 +88,7 @@ func (c *Client) GetApplicationRevisionMetadata(ctx context.Context, name, revis
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result models.GitLabCommit
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -128,7 +128,7 @@ func (c *Client) SyncApplication(ctx context.Context, name string, revision stri
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response but we won't need to process it
 	_, err = io.ReadAll(resp.Body)

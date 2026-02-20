@@ -172,7 +172,7 @@ func (p *Parser) splitYAMLDocuments(content string) []string {
 func (p *Parser) Cleanup() {
 	if p.workDir != "" {
 		p.logger.Debug("Cleaning up working directory", "path", p.workDir)
-		os.RemoveAll(p.workDir)
+		_ = os.RemoveAll(p.workDir)
 	}
 }
 

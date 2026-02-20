@@ -52,7 +52,7 @@ func (c *Client) CheckConnectivity(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to GitLab: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var version struct {
 		Version string `json:"version"`
@@ -158,8 +158,11 @@ func (c *Client) attemptRequest(ctx context.Context, method, endpoint string, bo
 	}
 
 	if resp.StatusCode >= 400 {
-		defer resp.Body.Close()
-		body, _ := io.ReadAll(resp.Body)
+		defer func() { _ = resp.Body.Close() }()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("GitLab API error (status %d): failed to read response body: %w", resp.StatusCode, err)
+		}
 		return nil, fmt.Errorf("GitLab API error (status %d): %s", resp.StatusCode, string(body))
 	}
 

@@ -33,7 +33,7 @@ func (c *Client) ListPipelines(ctx context.Context, projectID string) ([]models.
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var pipelines []models.GitLabPipeline
 	if err := json.NewDecoder(resp.Body).Decode(&pipelines); err != nil {
@@ -53,7 +53,7 @@ func (c *Client) GetPipeline(ctx context.Context, projectID string, pipelineID i
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var pipeline models.GitLabPipeline
 	if err := json.NewDecoder(resp.Body).Decode(&pipeline); err != nil {
@@ -72,7 +72,7 @@ func (c *Client) GetPipelineJobs(ctx context.Context, projectID string, pipeline
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var jobs []models.GitLabJob
 	if err := json.NewDecoder(resp.Body).Decode(&jobs); err != nil {
@@ -108,7 +108,7 @@ func (c *Client) FindRecentDeployments(ctx context.Context, projectID, environme
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var deployments []models.GitLabDeployment
 	if err := json.NewDecoder(resp.Body).Decode(&deployments); err != nil {
@@ -131,7 +131,7 @@ func (c *Client) GetJobLogs(ctx context.Context, projectID string, jobID int) (s
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	logs, err := io.ReadAll(resp.Body)
 	if err != nil {

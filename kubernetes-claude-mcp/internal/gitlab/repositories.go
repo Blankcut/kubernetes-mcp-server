@@ -35,7 +35,7 @@ func (c *Client) ListProjects(ctx context.Context) ([]models.GitLabProject, erro
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var projects []models.GitLabProject
 	if err := json.NewDecoder(resp.Body).Decode(&projects); err != nil {
@@ -55,7 +55,7 @@ func (c *Client) GetProject(ctx context.Context, projectID string) (*models.GitL
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var project models.GitLabProject
 	if err := json.NewDecoder(resp.Body).Decode(&project); err != nil {
@@ -77,7 +77,7 @@ func (c *Client) GetProjectByPath(ctx context.Context, path string) (*models.Git
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var project models.GitLabProject
 	if err := json.NewDecoder(resp.Body).Decode(&project); err != nil {
@@ -96,7 +96,7 @@ func (c *Client) GetCommit(ctx context.Context, projectID, sha string) (*models.
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var commit models.GitLabCommit
 	if err := json.NewDecoder(resp.Body).Decode(&commit); err != nil {
@@ -115,7 +115,7 @@ func (c *Client) GetCommitDiff(ctx context.Context, projectID, sha string) ([]mo
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var diffs []models.GitLabDiff
 	if err := json.NewDecoder(resp.Body).Decode(&diffs); err != nil {
@@ -155,7 +155,7 @@ func (c *Client) GetFileContent(ctx context.Context, projectID, filePath, ref st
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -191,7 +191,7 @@ func (c *Client) FindRecentChanges(ctx context.Context, projectID string, since 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var commits []models.GitLabCommit
 	if err := json.NewDecoder(resp.Body).Decode(&commits); err != nil {

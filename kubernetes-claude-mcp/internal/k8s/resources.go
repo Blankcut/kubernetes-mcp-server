@@ -215,7 +215,7 @@ func (c *Client) GetPodLogs(ctx context.Context, namespace, name, container stri
 	if err != nil {
 		return "", fmt.Errorf("failed to get pod logs: %w", err)
 	}
-	defer podLogs.Close()
+	defer func() { _ = podLogs.Close() }()
 
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, podLogs)

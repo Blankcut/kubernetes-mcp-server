@@ -160,7 +160,9 @@ func (m *ResourceMapper) GetResourceGraph(ctx context.Context, namespace string)
 			}
 
 			// Add to nodes array
-			graph["nodes"] = append(graph["nodes"].([]map[string]interface{}), node)
+			if nodes, ok := graph["nodes"].([]map[string]interface{}); ok {
+				graph["nodes"] = append(nodes, node)
+			}
 
 			// Save index for edge creation
 			nodeIndex[fmt.Sprintf("%s/%s", kind, name)] = nodeCount
@@ -183,7 +185,9 @@ func (m *ResourceMapper) GetResourceGraph(ctx context.Context, namespace string)
 				"relationship": rel.RelationType,
 			}
 
-			graph["edges"] = append(graph["edges"].([]map[string]interface{}), edge)
+			if edges, ok := graph["edges"].([]map[string]interface{}); ok {
+				graph["edges"] = append(edges, edge)
+			}
 		}
 	}
 

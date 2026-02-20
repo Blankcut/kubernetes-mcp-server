@@ -21,7 +21,7 @@ func (c *Client) ListApplications(ctx context.Context) ([]models.ArgoApplication
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result struct {
 		Items []models.ArgoApplication `json:"items"`
@@ -44,7 +44,7 @@ func (c *Client) GetApplication(ctx context.Context, name string) (*models.ArgoA
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var app models.ArgoApplication
 	if err := json.NewDecoder(resp.Body).Decode(&app); err != nil {
@@ -63,7 +63,7 @@ func (c *Client) GetResourceTree(ctx context.Context, name string) (*models.Argo
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var tree models.ArgoResourceTree
 	if err := json.NewDecoder(resp.Body).Decode(&tree); err != nil {
@@ -92,7 +92,7 @@ func (c *Client) FindApplicationsByResource(ctx context.Context, kind, name, nam
 
 	resp, err := c.doRequest(ctx, http.MethodGet, endpoint, nil)
 	if err == nil {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		var appRefs []struct {
 			Name string `json:"name"`
