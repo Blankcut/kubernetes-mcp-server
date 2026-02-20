@@ -3,6 +3,8 @@ import mdx from '@astrojs/mdx';
 import tailwind from '@astrojs/tailwind';
 import preact from '@astrojs/preact';
 import sitemap from '@astrojs/sitemap';
+import remarkToc from 'remark-toc';
+import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 
 // https://astro.build/config
 export default defineConfig({
@@ -11,8 +13,8 @@ export default defineConfig({
     mdx({
       syntaxHighlight: 'shiki',
       shikiConfig: { theme: 'github-dark' },
-      remarkPlugins: ['remark-toc'],
-      rehypePlugins: ['rehype-autolink-headings']
+      remarkPlugins: [remarkToc],
+      rehypePlugins: [rehypeAutolinkHeadings]
     }),
     tailwind({
       config: { applyBaseStyles: false }
