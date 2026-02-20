@@ -237,7 +237,7 @@ func (h *ProtocolHandler) generateNamespaceAnalysisPrompt(namespace string, topo
 		for relType, relations := range relationshipsByType {
 			// Capitalize first letter of relationship type
 			capitalizedType := relType
-			if len(relType) > 0 {
+			if relType != "" {
 				capitalizedType = strings.ToUpper(relType[:1]) + relType[1:]
 			}
 			prompt += fmt.Sprintf("### %s Relationships\n", capitalizedType)

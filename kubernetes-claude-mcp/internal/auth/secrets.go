@@ -109,14 +109,14 @@ func (sm *SecretsManager) SaveCredentials(ctx context.Context, service string, c
 
 	// Create service directory if it doesn't exist
 	serviceDir := filepath.Join(sm.secretsDir, service)
-	if err := os.MkdirAll(serviceDir, 0700); err != nil {
+	if err := os.MkdirAll(serviceDir, 0o700); err != nil {
 		return fmt.Errorf("failed to create service directory: %w", err)
 	}
 
 	// Save token if provided
 	if creds.Token != "" {
 		tokenPath := filepath.Join(serviceDir, "token")
-		if err := os.WriteFile(tokenPath, []byte(creds.Token), 0600); err != nil {
+		if err := os.WriteFile(tokenPath, []byte(creds.Token), 0o600); err != nil {
 			return fmt.Errorf("failed to save token: %w", err)
 		}
 		sm.logger.Debug("Saved token to file", "service", service)
@@ -125,7 +125,7 @@ func (sm *SecretsManager) SaveCredentials(ctx context.Context, service string, c
 	// Save API key if provided
 	if creds.APIKey != "" {
 		apiKeyPath := filepath.Join(serviceDir, "apikey")
-		if err := os.WriteFile(apiKeyPath, []byte(creds.APIKey), 0600); err != nil {
+		if err := os.WriteFile(apiKeyPath, []byte(creds.APIKey), 0o600); err != nil {
 			return fmt.Errorf("failed to save API key: %w", err)
 		}
 		sm.logger.Debug("Saved API key to file", "service", service)
@@ -134,7 +134,7 @@ func (sm *SecretsManager) SaveCredentials(ctx context.Context, service string, c
 	// Save username if provided
 	if creds.Username != "" {
 		usernamePath := filepath.Join(serviceDir, "username")
-		if err := os.WriteFile(usernamePath, []byte(creds.Username), 0600); err != nil {
+		if err := os.WriteFile(usernamePath, []byte(creds.Username), 0o600); err != nil {
 			return fmt.Errorf("failed to save username: %w", err)
 		}
 		sm.logger.Debug("Saved username to file", "service", service)
@@ -143,7 +143,7 @@ func (sm *SecretsManager) SaveCredentials(ctx context.Context, service string, c
 	// Save password if provided
 	if creds.Password != "" {
 		passwordPath := filepath.Join(serviceDir, "password")
-		if err := os.WriteFile(passwordPath, []byte(creds.Password), 0600); err != nil {
+		if err := os.WriteFile(passwordPath, []byte(creds.Password), 0o600); err != nil {
 			return fmt.Errorf("failed to save password: %w", err)
 		}
 		sm.logger.Debug("Saved password to file", "service", service)

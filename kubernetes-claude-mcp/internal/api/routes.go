@@ -250,7 +250,7 @@ func (s *Server) handleResourceQuery(w http.ResponseWriter, r *http.Request) {
 		"namespace", request.Namespace)
 
 	// Special handling for namespace resources to provide comprehensive data
-	if strings.ToLower(request.Resource) == "namespace" {
+	if strings.EqualFold(request.Resource, "namespace") {
 		// Get namespace topology
 		topology, err := s.k8sClient.GetNamespaceTopology(r.Context(), request.Name)
 		if err != nil {

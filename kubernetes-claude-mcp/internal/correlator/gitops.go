@@ -68,7 +68,7 @@ func (c *GitOpsCorrelator) AnalyzeMergeRequest(
 	}
 
 	// Find the project path
-	projectPath := fmt.Sprintf("%s", projectID)
+	projectPath := projectID
 	project, err := c.gitlabClient.GetProject(ctx, projectID)
 	if err == nil && project != nil {
 		projectPath = project.PathWithNamespace
@@ -268,11 +268,9 @@ func (c *GitOpsCorrelator) TraceResourceDeployment(
 						errMsg := fmt.Sprintf("Failed to list pipelines: %v", err)
 						errors = append(errors, errMsg)
 						c.logger.Warn(errMsg)
-					} else {
+					} else if len(pipelines) > 0 {
 						// Get the latest pipeline
-						if len(pipelines) > 0 {
-							resourceContext.LastPipeline = &pipelines[0]
-						}
+						resourceContext.LastPipeline = &pipelines[0]
 					}
 
 					// Find environment from ArgoCD application
@@ -425,7 +423,7 @@ func (c *GitOpsCorrelator) FindResourcesAffectedByCommit(
 	}
 
 	// Find applications that use this GitLab project as source
-	projectPath := fmt.Sprintf("%s", projectID) // This might need more parsing depending on projectID format
+	projectPath := projectID // This might need more parsing depending on projectID format
 	project, err := c.gitlabClient.GetProject(ctx, projectID)
 	if err == nil && project != nil {
 		projectPath = project.PathWithNamespace
