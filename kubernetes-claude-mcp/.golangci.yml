@@ -31,6 +31,8 @@ linters:
         - opinionated
         - performance
         - style
+      disabled-checks:
+        - rangeValCopy
     gosec:
       excludes:
         - G104

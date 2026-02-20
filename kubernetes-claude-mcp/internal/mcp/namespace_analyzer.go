@@ -144,14 +144,15 @@ func (h *ProtocolHandler) AnalyzeNamespace(ctx context.Context, namespace string
 		if inRecommendations && strings.TrimSpace(line) != "" && !strings.HasPrefix(line, "#") {
 			// Remove leading dash or number if it exists
 			cleanLine := strings.TrimSpace(line)
-			if strings.HasPrefix(cleanLine, "- ") {
+			switch {
+			case strings.HasPrefix(cleanLine, "- "):
 				cleanLine = cleanLine[2:]
-			} else if len(cleanLine) > 2 && strings.HasPrefix(cleanLine, "* ") {
+			case len(cleanLine) > 2 && strings.HasPrefix(cleanLine, "* "):
 				cleanLine = cleanLine[2:]
-			} else if len(cleanLine) > 3 &&
+			case len(cleanLine) > 3 &&
 				((cleanLine[0] >= '1' && cleanLine[0] <= '9') &&
 					(cleanLine[1] == '.' || cleanLine[1] == ')') &&
-					(cleanLine[2] == ' ')) {
+					(cleanLine[2] == ' ')):
 				cleanLine = cleanLine[3:]
 			}
 

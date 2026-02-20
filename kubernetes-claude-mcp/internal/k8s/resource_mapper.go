@@ -522,11 +522,12 @@ func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured)
 		}
 
 		availableReplicas, foundAvailable, _ := unstructured.NestedInt64(status, "availableReplicas")
-		if foundAvailable && availableReplicas == replicas {
+		switch {
+		case foundAvailable && availableReplicas == replicas:
 			return "healthy"
-		} else if foundAvailable && availableReplicas > 0 {
+		case foundAvailable && availableReplicas > 0:
 			return "progressing"
-		} else {
+		default:
 			return "unhealthy"
 		}
 
@@ -545,11 +546,12 @@ func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured)
 
 	case "PersistentVolumeClaim":
 		phase, found, _ := unstructured.NestedString(status, "phase")
-		if found && phase == "Bound" {
+		switch {
+		case found && phase == "Bound":
 			return "healthy"
-		} else if found && phase == "Pending" {
+		case found && phase == "Pending":
 			return "progressing"
-		} else {
+		default:
 			return "unhealthy"
 		}
 
@@ -589,11 +591,12 @@ func (m *ResourceMapper) determineResourceHealth(obj *unstructured.Unstructured)
 
 				if typeFound && statusFound {
 					// Check for common condition types indicating health
-					if (condType == "Ready" || condType == "Available") && condStatus == "True" {
+					switch {
+					case (condType == "Ready" || condType == "Available") && condStatus == "True":
 						return "healthy"
-					} else if condType == "Progressing" && condStatus == "True" {
+					case condType == "Progressing" && condStatus == "True":
 						return "progressing"
-					} else if (condType == "Failed" || condType == "Error") && condStatus == "True" {
+					case (condType == "Failed" || condType == "Error") && condStatus == "True":
 						return "unhealthy"
 					}
 				}

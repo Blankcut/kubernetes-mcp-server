@@ -158,7 +158,7 @@ func (h *ProtocolHandler) ProcessRequest(ctx context.Context, request *models.MC
 				}
 			}
 
-			formattedContext, formatErr := h.contextManager.FormatResourceContext(resourceInfo)
+			formattedContext, formatErr := h.contextManager.FormatResourceContext(&resourceInfo)
 			if formatErr != nil {
 				return nil, fmt.Errorf("failed to format resource context: %w", formatErr)
 			}

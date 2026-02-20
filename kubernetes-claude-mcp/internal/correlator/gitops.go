@@ -89,6 +89,7 @@ func (c *GitOpsCorrelator) AnalyzeMergeRequest(
 	// Identify potentially affected applications
 	var affectedApps []models.ArgoApplication
 	for _, app := range argoApps {
+		app := app // Create a copy to avoid memory aliasing
 		if isAppSourcedFromProject(&app, projectPath) {
 			// For each file changed in the MR, check if it affects the app
 			isAffected := false
@@ -431,6 +432,7 @@ func (c *GitOpsCorrelator) FindResourcesAffectedByCommit(
 
 	// For each application, check if it's affected by the changed files
 	for _, app := range argoApps {
+		app := app // Create a copy to avoid memory aliasing
 		if !isAppSourcedFromProject(&app, projectPath) {
 			continue
 		}

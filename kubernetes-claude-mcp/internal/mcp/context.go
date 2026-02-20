@@ -34,7 +34,7 @@ func NewContextManager(maxContextSize int, logger *logging.Logger) *ContextManag
 }
 
 // FormatResourceContext formats a resource context for Claude
-func (cm *ContextManager) FormatResourceContext(rc models.ResourceContext) (string, error) {
+func (cm *ContextManager) FormatResourceContext(rc *models.ResourceContext) (string, error) {
 	cm.logger.Debug("Formatting resource context",
 		"kind", rc.Kind,
 		"name", rc.Name,
@@ -422,7 +422,8 @@ func (cm *ContextManager) CombineContexts(ctx context.Context, resourceContexts 
 
 	// Add context for each resource
 	for i, rc := range resourceContexts {
-		resourceContext, err := cm.FormatResourceContext(rc)
+		rc := rc // Create a copy to avoid memory aliasing
+		resourceContext, err := cm.FormatResourceContext(&rc)
 		if err != nil {
 			return "", fmt.Errorf("failed to format resource context #%d: %w", i+1, err)
 		}
