@@ -62,7 +62,7 @@ func TestConfig_Validate_MissingClaudeAPIKey(t *testing.T) {
 
 	err := cfg.Validate()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Claude API key is required")
+	assert.Contains(t, err.Error(), "claude API key is required")
 }
 
 func TestConfig_Validate_MissingClaudeModelID(t *testing.T) {
@@ -77,7 +77,7 @@ func TestConfig_Validate_MissingClaudeModelID(t *testing.T) {
 
 	err := cfg.Validate()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Claude model ID is required")
+	assert.Contains(t, err.Error(), "claude model ID is required")
 }
 
 func TestConfig_Creation(t *testing.T) {
