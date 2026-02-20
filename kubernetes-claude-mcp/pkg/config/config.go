@@ -150,7 +150,7 @@ func (c *Config) Validate() error {
 	}
 
 	// Check Kubernetes configuration
-	if c.Kubernetes.InCluster && c.Kubernetes.Kubeconfig != "" {
+	if c.Kubernetes.InCluster && c.Kubernetes.KubeConfig != "" {
 		return fmt.Errorf("cannot specify both inCluster=true and kubeconfig path")
 	}
 
