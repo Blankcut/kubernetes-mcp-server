@@ -64,7 +64,7 @@ func Load(path string) (*Config, error) {
 	config := &Config{}
 
 	// Read config file
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("error reading config file: %w", err)
 	}

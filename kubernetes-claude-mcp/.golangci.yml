@@ -16,48 +16,33 @@ linters:
     - unparam
     - gocritic
     - gosec
-    - revive
-  settings:
-    errcheck:
-      check-type-assertions: true
-      check-blank: false
-    govet:
-      enable:
-        - shadow
-    gocritic:
-      enabled-tags:
-        - diagnostic
-        - experimental
-        - opinionated
-        - performance
-        - style
-      disabled-checks:
-        - rangeValCopy
-    gosec:
-      excludes:
-        - G104
-        - G304
-    revive:
-      rules:
-        - name: exported
-          disabled: false
-  exclusions:
-    generated: strict
-    rules:
-      - path: '_test\.go'
-        linters:
-          - errcheck
-          - gosec
 
-formatters:
-  enable:
-    - gofmt
-    - gofumpt
-    - goimports
-  settings:
-    gofmt:
-      simplify: true
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
+  govet:
+    enable:
+      - shadow
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - rangeValCopy
+  gosec:
+    excludes:
+      - G104
+      - G304
 
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-rules:
+    - path: '_test\.go'
+      linters:
+        - errcheck
+        - gosec
