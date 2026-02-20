@@ -14,7 +14,7 @@ import (
 )
 
 // ListMergeRequests returns a list of merge requests for a project
-func (c *Client) ListMergeRequests(ctx context.Context, projectID string, state string) ([]models.GitLabMergeRequest, error) {
+func (c *Client) ListMergeRequests(ctx context.Context, projectID, state string) ([]models.GitLabMergeRequest, error) {
 	c.logger.Debug("Listing merge requests", "projectID", projectID, "state", state)
 
 	// Create endpoint with query parameters

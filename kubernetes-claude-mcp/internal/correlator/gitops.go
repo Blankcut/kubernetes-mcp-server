@@ -89,13 +89,13 @@ func (c *GitOpsCorrelator) AnalyzeMergeRequest(
 	// Identify potentially affected applications
 	var affectedApps []models.ArgoApplication
 	for _, app := range argoApps {
-		if isAppSourcedFromProject(app, projectPath) {
+		if isAppSourcedFromProject(&app, projectPath) {
 			// For each file changed in the MR, check if it affects the app
 			isAffected := false
 
 			// Check if any changed file affects the app
 			for _, file := range mergeRequest.MergeRequestContext.AffectedFiles {
-				if isFileInAppSourcePath(app, file) {
+				if isFileInAppSourcePath(&app, file) {
 					isAffected = true
 					break
 				}
@@ -103,7 +103,7 @@ func (c *GitOpsCorrelator) AnalyzeMergeRequest(
 
 			// Check Helm-derived resources
 			if !isAffected && len(helmAffectedResources) > 0 {
-				if appContainsAnyResource(ctx, c.argoClient, app, helmAffectedResources) {
+				if appContainsAnyResource(ctx, c.argoClient, &app, helmAffectedResources) {
 					isAffected = true
 				}
 			}
@@ -274,7 +274,7 @@ func (c *GitOpsCorrelator) TraceResourceDeployment(
 					}
 
 					// Find environment from ArgoCD application
-					environment := extractEnvironmentFromArgoApp(app)
+					environment := extractEnvironmentFromArgoApp(&app)
 					if environment != "" {
 						// Get recent deployments to this environment
 						deployments, deploymentsErr := c.gitlabClient.FindRecentDeployments(
@@ -329,7 +329,7 @@ func (c *GitOpsCorrelator) TraceResourceDeployment(
 }
 
 // isFileInAppSourcePath checks if a file is in the application's source path
-func isFileInAppSourcePath(app models.ArgoApplication, file string) bool {
+func isFileInAppSourcePath(app *models.ArgoApplication, file string) bool {
 	sourcePath := app.Spec.Source.Path
 	if sourcePath == "" {
 		// If no specific path is provided, any file could affect the app
@@ -357,7 +357,7 @@ func hasHelmChanges(diffs []models.GitLabDiff) bool {
 }
 
 // appContainsAnyResource checks if an ArgoCD application contains any of the specified resources
-func appContainsAnyResource(ctx context.Context, argoClient *argocd.Client, app models.ArgoApplication, resources []string) bool {
+func appContainsAnyResource(ctx context.Context, argoClient *argocd.Client, app *models.ArgoApplication, resources []string) bool {
 	tree, err := argoClient.GetResourceTree(ctx, app.Name)
 	if err != nil {
 		return false
@@ -431,12 +431,12 @@ func (c *GitOpsCorrelator) FindResourcesAffectedByCommit(
 
 	// For each application, check if it's affected by the changed files
 	for _, app := range argoApps {
-		if !isAppSourcedFromProject(app, projectPath) {
+		if !isAppSourcedFromProject(&app, projectPath) {
 			continue
 		}
 
 		// Check if the commit affects files used by this application
-		if isAppAffectedByDiffs(app, diffs) {
+		if isAppAffectedByDiffs(&app, diffs) {
 			c.logger.Info("Found affected ArgoCD application", "app", app.Name)
 
 			// Get resources managed by this application
@@ -532,7 +532,7 @@ func extractGitLabProjectPath(repoURL string) string {
 }
 
 // extractEnvironmentFromArgoApp tries to determine the environment from an ArgoCD application
-func extractEnvironmentFromArgoApp(app models.ArgoApplication) string {
+func extractEnvironmentFromArgoApp(app *models.ArgoApplication) string {
 	// Check for environment in labels
 	if env, ok := app.Metadata.Labels["environment"]; ok {
 		return env
@@ -570,7 +570,7 @@ func extractEnvironmentFromArgoApp(app models.ArgoApplication) string {
 }
 
 // isAppSourcedFromProject checks if an ArgoCD application uses a specific GitLab project
-func isAppSourcedFromProject(app models.ArgoApplication, projectPath string) bool {
+func isAppSourcedFromProject(app *models.ArgoApplication, projectPath string) bool {
 	// Extract project path from app's repo URL
 	appProjectPath := extractGitLabProjectPath(app.Spec.Source.RepoURL)
 
@@ -579,7 +579,7 @@ func isAppSourcedFromProject(app models.ArgoApplication, projectPath string) boo
 }
 
 // isAppAffectedByDiffs checks if application manifests are affected by file changes
-func isAppAffectedByDiffs(app models.ArgoApplication, diffs []models.GitLabDiff) bool {
+func isAppAffectedByDiffs(app *models.ArgoApplication, diffs []models.GitLabDiff) bool {
 	sourcePath := app.Spec.Source.Path
 	if sourcePath == "" {
 		// If no specific path is provided, any change could affect the app

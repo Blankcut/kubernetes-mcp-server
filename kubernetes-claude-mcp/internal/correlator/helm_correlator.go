@@ -35,7 +35,7 @@ func NewHelmCorrelator(gitlabClient *gitlab.Client, logger *logging.Logger) *Hel
 }
 
 // AnalyzeCommitHelmChanges analyzes Helm changes in a commit
-func (c *HelmCorrelator) AnalyzeCommitHelmChanges(ctx context.Context, projectID string, commitSHA string) ([]string, error) {
+func (c *HelmCorrelator) AnalyzeCommitHelmChanges(ctx context.Context, projectID, commitSHA string) ([]string, error) {
 	c.logger.Debug("Analyzing Helm changes in commit", "projectID", projectID, "commitSHA", commitSHA)
 
 	// Get commit diff
@@ -240,11 +240,12 @@ func (c *HelmCorrelator) extractResourceInfo(manifest string) (kind, name, names
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 
-		if strings.HasPrefix(line, "kind:") {
+		switch {
+		case strings.HasPrefix(line, "kind:"):
 			kind = strings.TrimSpace(strings.TrimPrefix(line, "kind:"))
-		} else if strings.HasPrefix(line, "name:") {
+		case strings.HasPrefix(line, "name:"):
 			name = strings.TrimSpace(strings.TrimPrefix(line, "name:"))
-		} else if strings.HasPrefix(line, "namespace:") {
+		case strings.HasPrefix(line, "namespace:"):
 			namespace = strings.TrimSpace(strings.TrimPrefix(line, "namespace:"))
 		}
 	}

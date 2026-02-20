@@ -55,7 +55,7 @@ func (tc *TroubleshootCorrelator) TroubleshootResource(ctx context.Context, name
 	}
 
 	// Analyze Kubernetes events for issues
-	tc.analyzeKubernetesEvents(resourceContext, result)
+	tc.analyzeKubernetesEvents(&resourceContext, result)
 
 	// Analyze resource status and conditions if resource was retrieved
 	if resource != nil {
@@ -71,10 +71,10 @@ func (tc *TroubleshootCorrelator) TroubleshootResource(ctx context.Context, name
 	}
 
 	// Analyze ArgoCD sync status
-	tc.analyzeArgoStatus(resourceContext, result)
+	tc.analyzeArgoStatus(&resourceContext, result)
 
 	// Analyze GitLab pipeline status
-	tc.analyzeGitLabStatus(resourceContext, result)
+	tc.analyzeGitLabStatus(&resourceContext, result)
 
 	// Check if resource is healthy
 	if len(result.Issues) == 0 && resource != nil && !tc.isResourceHealthy(resource) {
@@ -384,14 +384,15 @@ func (tc *TroubleshootCorrelator) analyzeContainerStatuses(statuses []interface{
 						Description: fmt.Sprintf("%s is waiting: %s - %s", containerType, reasonStr, messageStr),
 					}
 
-					if reason == "CrashLoopBackOff" {
+					switch reason {
+					case "CrashLoopBackOff":
 						issue.Category = "CrashLoopBackOff"
 						issue.Severity = "Error"
 						issue.Title = fmt.Sprintf("%s %s CrashLoopBackOff", containerType, containerName)
-					} else if reason == "ImagePullBackOff" || reason == "ErrImagePull" {
+					case "ImagePullBackOff", "ErrImagePull":
 						issue.Category = "ImagePullError"
 						issue.Title = fmt.Sprintf("%s %s Image Pull Error", containerType, containerName)
-					} else if reason == "PodInitializing" || reason == "ContainerCreating" {
+					case "PodInitializing", "ContainerCreating":
 						issue.Category = "PodInitializing"
 						issue.Title = fmt.Sprintf("%s Still Initializing", containerType)
 						issue.Description = fmt.Sprintf("%s is still being created or initialized", containerType)
@@ -449,7 +450,7 @@ func (tc *TroubleshootCorrelator) analyzeContainerStatuses(statuses []interface{
 }
 
 // analyzeKubernetesEvents looks for common issues in Kubernetes events
-func (tc *TroubleshootCorrelator) analyzeKubernetesEvents(rc models.ResourceContext, result *models.TroubleshootResult) {
+func (tc *TroubleshootCorrelator) analyzeKubernetesEvents(rc *models.ResourceContext, result *models.TroubleshootResult) {
 	for _, event := range rc.Events {
 		// Look for error events
 		if event.Type == "Warning" {
@@ -492,7 +493,7 @@ func (tc *TroubleshootCorrelator) analyzeKubernetesEvents(rc models.ResourceCont
 }
 
 // analyzeArgoStatus looks for issues in ArgoCD status
-func (tc *TroubleshootCorrelator) analyzeArgoStatus(rc models.ResourceContext, result *models.TroubleshootResult) {
+func (tc *TroubleshootCorrelator) analyzeArgoStatus(rc *models.ResourceContext, result *models.TroubleshootResult) {
 	if rc.ArgoApplication == nil {
 		// No ArgoCD application managing this resource
 		return
@@ -539,7 +540,7 @@ func (tc *TroubleshootCorrelator) analyzeArgoStatus(rc models.ResourceContext, r
 }
 
 // analyzeGitLabStatus looks for issues in GitLab pipelines and deployments
-func (tc *TroubleshootCorrelator) analyzeGitLabStatus(rc models.ResourceContext, result *models.TroubleshootResult) {
+func (tc *TroubleshootCorrelator) analyzeGitLabStatus(rc *models.ResourceContext, result *models.TroubleshootResult) {
 	if rc.GitLabProject == nil {
 		// No GitLab project information
 		return

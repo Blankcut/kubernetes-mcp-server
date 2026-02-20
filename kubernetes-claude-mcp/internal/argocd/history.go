@@ -99,7 +99,7 @@ func (c *Client) GetApplicationRevisionMetadata(ctx context.Context, name, revis
 }
 
 // SyncApplication triggers a sync operation for an application
-func (c *Client) SyncApplication(ctx context.Context, name string, revision string, prune bool, resources []string) error {
+func (c *Client) SyncApplication(ctx context.Context, name, revision string, prune bool, resources []string) error {
 	c.logger.Debug("Syncing application",
 		"name", name,
 		"revision", revision,
