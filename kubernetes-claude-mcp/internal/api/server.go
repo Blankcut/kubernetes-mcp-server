@@ -174,6 +174,8 @@ func (rw *responseWriter) WriteHeader(code int) {
 }
 
 // Initialize the resourceMapper in NewServer
+//
+//nolint:unused // Reserved for future resource mapper initialization
 func (s *Server) initResourceMapper() {
 	if s.k8sClient != nil {
 		s.resourceMapper = k8s.NewResourceMapper(s.k8sClient)

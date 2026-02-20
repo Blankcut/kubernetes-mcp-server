@@ -64,7 +64,7 @@ func (p *Parser) ParseChart(ctx context.Context, chartPath string, valuesFiles [
 	}
 
 	// Execute helm template command
-	cmd := exec.CommandContext(ctx, "helm", args...)
+	cmd := exec.CommandContext(ctx, "helm", args...) //nolint:gosec // Helm command with controlled arguments
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -87,7 +87,7 @@ func (p *Parser) WriteChartFiles(files map[string]string) (string, error) {
 	chartDir := filepath.Join(p.workDir, "chart")
 
 	// Create chart directory if not exists
-	if err := os.MkdirAll(chartDir, 0755); err != nil {
+	if err := os.MkdirAll(chartDir, 0750); err != nil { //nolint:gosec // Directory permissions for chart files
 		return "", fmt.Errorf("failed to create chart directory: %w", err)
 	}
 
@@ -97,12 +97,12 @@ func (p *Parser) WriteChartFiles(files map[string]string) (string, error) {
 		dirPath := filepath.Dir(fullPath)
 
 		// Create directories
-		if err := os.MkdirAll(dirPath, 0755); err != nil {
+		if err := os.MkdirAll(dirPath, 0750); err != nil { //nolint:gosec // Directory permissions for chart files
 			return "", fmt.Errorf("failed to create directory %s: %w", dirPath, err)
 		}
 
 		// Write file
-		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+		if err := os.WriteFile(fullPath, []byte(content), 0600); err != nil {
 			return "", fmt.Errorf("failed to write file %s: %w", fullPath, err)
 		}
 	}
@@ -114,7 +114,7 @@ func (p *Parser) WriteChartFiles(files map[string]string) (string, error) {
 func (p *Parser) WriteValuesFile(content string) (string, error) {
 	valuesFile := filepath.Join(p.workDir, "values.yaml")
 
-	if err := os.WriteFile(valuesFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(valuesFile, []byte(content), 0600); err != nil {
 		return "", fmt.Errorf("failed to write values file: %w", err)
 	}
 

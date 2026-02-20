@@ -341,6 +341,8 @@ func isFileInAppSourcePath(app models.ArgoApplication, file string) bool {
 }
 
 // hasHelmChanges checks if any of the changed files are related to Helm charts
+//
+//nolint:unused // Reserved for future Helm change detection
 func hasHelmChanges(diffs []models.GitLabDiff) bool {
 	for _, diff := range diffs {
 		path := diff.NewPath

@@ -103,7 +103,8 @@ func (m *ResourceMapper) GetNamespaceTopology(ctx context.Context, namespace str
 				topology.Metrics[r.Kind] = map[string]int{"count": len(list.Items)}
 				topology.Health[r.Kind] = make(map[string]string)
 
-				for i, item := range list.Items {
+				for i := range list.Items {
+					item := list.Items[i]
 					topology.Resources[r.Kind][i] = item.GetName()
 
 					// Determine health status

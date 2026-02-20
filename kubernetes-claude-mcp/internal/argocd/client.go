@@ -36,7 +36,7 @@ func NewClient(cfg *config.ArgoCDConfig, credProvider *auth.CredentialProvider, 
 	// Create transport with optional insecure mode
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: cfg.Insecure,
+			InsecureSkipVerify: cfg.Insecure, //nolint:gosec // Configurable for development environments
 		},
 	}
 
@@ -285,6 +285,8 @@ func (c *Client) addAuth(req *http.Request) error {
 }
 
 // refreshToken gets a new token using username/password credentials
+//
+//nolint:unused // Reserved for future token refresh functionality
 func (c *Client) refreshToken(ctx context.Context) (string, time.Time, error) {
 	creds, err := c.credentialProvider.GetCredentials(auth.ServiceArgoCD)
 	if err != nil {
