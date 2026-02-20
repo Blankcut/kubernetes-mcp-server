@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+data:
+  policy.csv: |
+    g, system:serviceaccount:argocd:argocd-application-controller, role:admin
+    g, system:serviceaccount:argocd:argocd-repo-server, role:admin
+    g, system:serviceaccount:argocd:argocd-server, role:admin
+    g, mcp-server-account, role:admin
+    g, admin, role:admin
+    
+    # Custom role for MCP server with specific permissions
+    p, role:mcp-readonly, applications, get, *, allow
+    p, role:mcp-readonly, applications, list, *, allow
+    p, role:mcp-readonly, applications, action/*, *, allow
+    p, role:mcp-readonly, applicationsets, get, *, allow
+    p, role:mcp-readonly, applicationsets, list, *, allow
+    p, role:mcp-readonly, repositories, get, *, allow
+    p, role:mcp-readonly, repositories, list, *, allow
+    p, role:mcp-readonly, clusters, get, *, allow
+    p, role:mcp-readonly, clusters, list, *, allow
+    p, role:mcp-readonly, projects, get, *, allow
+    p, role:mcp-readonly, projects, list, *, allow
+    
+    # Grant mcp-server-account the custom role
+    g, mcp-server-account, role:mcp-readonly
+  policy.default: ""
+  policy.matchMode: glob
+  scopes: '[groups]'

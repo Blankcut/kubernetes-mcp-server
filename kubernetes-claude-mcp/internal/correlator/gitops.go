@@ -192,38 +192,47 @@ func (c *GitOpsCorrelator) TraceResourceDeployment(
 
 	var errors []string
 
-	// Get Kubernetes resource information
+	// Get Kubernetes resource information with enhanced error handling
 	resource, err := c.k8sClient.GetResource(ctx, kind, namespace, name)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to get Kubernetes resource: %v", err)
 		errors = append(errors, errMsg)
-		c.logger.Warn(errMsg)
+		c.logger.Warn(errMsg, "kind", kind, "name", name, "namespace", namespace)
 	} else {
 		resourceContext.APIVersion = resource.GetAPIVersion()
+		c.logger.Debug("Retrieved Kubernetes resource", "apiVersion", resourceContext.APIVersion)
 
-		// Get events related to this resource
+		// Get events related to this resource with better error handling
 		events, err := c.k8sClient.GetResourceEvents(ctx, namespace, kind, name)
 		if err != nil {
 			errMsg := fmt.Sprintf("Failed to get resource events: %v", err)
 			errors = append(errors, errMsg)
-			c.logger.Warn(errMsg)
+			c.logger.Warn(errMsg, "kind", kind, "name", name, "namespace", namespace)
 		} else {
 			resourceContext.Events = events
+			c.logger.Debug("Retrieved resource events", "eventCount", len(events))
 		}
+
+		// TODO: Add related resources discovery in future enhancement
 	}
 
-	// Find the ArgoCD application managing this resource
+	// Find the ArgoCD application managing this resource with enhanced error handling
 	argoApps, err := c.argoClient.FindApplicationsByResource(ctx, kind, name, namespace)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to find ArgoCD applications: %v", err)
 		errors = append(errors, errMsg)
-		c.logger.Warn(errMsg)
+		c.logger.Warn(errMsg, "kind", kind, "name", name, "namespace", namespace)
 	} else if len(argoApps) > 0 {
 		// Use the first application that manages this resource
 		app := argoApps[0]
 		resourceContext.ArgoApplication = &app
 		resourceContext.ArgoSyncStatus = app.Status.Sync.Status
 		resourceContext.ArgoHealthStatus = app.Status.Health.Status
+
+		c.logger.Debug("Found ArgoCD application",
+			"appName", app.Name,
+			"syncStatus", app.Status.Sync.Status,
+			"healthStatus", app.Status.Health.Status)
 
 		// Get recent syncs
 		history, err := c.argoClient.GetApplicationHistory(ctx, app.Name)

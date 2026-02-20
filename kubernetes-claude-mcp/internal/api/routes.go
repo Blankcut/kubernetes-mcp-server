@@ -19,8 +19,10 @@ func (s *Server) setupRoutes() {
 	// API version prefix
 	apiV1 := s.router.PathPrefix("/api/v1").Subrouter()
 
-	// Health check endpoint (no auth required)
+	// Health check endpoints (no auth required)
 	apiV1.HandleFunc("/health", s.handleHealth).Methods("GET")
+	apiV1.HandleFunc("/health/live", s.handleLiveness).Methods("GET")
+	apiV1.HandleFunc("/health/ready", s.handleReadiness).Methods("GET")
 
 	// Add authentication middleware to all other routes
 	apiSecure := apiV1.NewRoute().Subrouter()
@@ -136,6 +138,67 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	response := healthResponse{
 		Status:   status,
 		Services: services,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleLiveness handles Kubernetes liveness probe requests
+// This endpoint checks if the application is running and should be restarted if it fails
+func (s *Server) handleLiveness(w http.ResponseWriter, r *http.Request) {
+	type livenessResponse struct {
+		Status string `json:"status"`
+		Alive  bool   `json:"alive"`
+	}
+
+	// Liveness check is simple - if we can respond, we're alive
+	response := livenessResponse{
+		Status: "ok",
+		Alive:  true,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleReadiness handles Kubernetes readiness probe requests
+// This endpoint checks if the application is ready to serve traffic
+func (s *Server) handleReadiness(w http.ResponseWriter, r *http.Request) {
+	type readinessResponse struct {
+		Status string          `json:"status"`
+		Ready  bool            `json:"ready"`
+		Checks map[string]bool `json:"checks"`
+	}
+
+	ctx := r.Context()
+	checks := map[string]bool{
+		"kubernetes": false,
+	}
+
+	// Check Kubernetes connectivity - this is critical for readiness
+	if err := s.k8sClient.CheckConnectivity(ctx); err != nil {
+		s.logger.Debug("Kubernetes readiness check failed", "error", err)
+		response := readinessResponse{
+			Status: "not ready",
+			Ready:  false,
+			Checks: checks,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	checks["kubernetes"] = true
+
+	// If Kubernetes is available, we're ready
+	response := readinessResponse{
+		Status: "ready",
+		Ready:  true,
+		Checks: checks,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

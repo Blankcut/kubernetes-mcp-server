@@ -1,0 +1,145 @@
+replicaCount: 1
+
+image:
+  repository: blankcut/kubernetes-mcp-server
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: kubernetes-mcp-server.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+config:
+  server:
+    address: ":8080"
+    readTimeout: 30
+    writeTimeout: 60
+    auth:
+      apiKey: ""
+  
+  kubernetes:
+    kubeconfig: ""
+    inCluster: true
+    defaultContext: ""
+    defaultNamespace: "default"
+  
+  argocd:
+    url: ""
+    authToken: ""
+    insecure: false
+  
+  gitlab:
+    url: "https://gitlab.com"
+    authToken: ""
+    apiVersion: "v4"
+    projectPath: ""
+  
+  claude:
+    apiKey: ""
+    baseURL: "https://api.anthropic.com"
+    modelID: "claude-sonnet-4.5-20250514"
+    maxTokens: 8192
+    temperature: 0.3
+
+secrets:
+  create: true
+  apiKey: ""
+  argocdToken: ""
+  gitlabToken: ""
+  claudeApiKey: ""
+
+rbac:
+  create: true
+  clusterRole: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "services", "endpoints", "namespaces", "events", "configmaps", "secrets"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["apps"]
+      resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["batch"]
+      resources: ["jobs", "cronjobs"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["networking.k8s.io"]
+      resources: ["ingresses", "networkpolicies"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["argoproj.io"]
+      resources: ["applications", "appprojects"]
+      verbs: ["get", "list", "watch"]
+
+livenessProbe:
+  httpGet:
+    path: /api/v1/health/live
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /api/v1/health/ready
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+

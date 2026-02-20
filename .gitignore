@@ -28,6 +28,7 @@ bin-release/
 # Dependency directories
 vendor/
 coverage.out
+coverage/
 
 # IDE/editor config
 .vscode/
@@ -61,3 +62,9 @@ config.yaml
 
 # Ignore tmp files
 /tmp
+
+# ignoring .augment directory
+.augment
+
+# TODO file (project planning)
+TODO.md

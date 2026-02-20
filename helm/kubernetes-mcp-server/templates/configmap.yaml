@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubernetes-mcp-server.fullname" . }}
+  labels:
+    {{- include "kubernetes-mcp-server.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    server:
+      address: {{ .Values.config.server.address | quote }}
+      readTimeout: {{ .Values.config.server.readTimeout }}
+      writeTimeout: {{ .Values.config.server.writeTimeout }}
+      auth:
+        apiKey: "${API_KEY}"
+    
+    kubernetes:
+      kubeconfig: {{ .Values.config.kubernetes.kubeconfig | quote }}
+      inCluster: {{ .Values.config.kubernetes.inCluster }}
+      defaultContext: {{ .Values.config.kubernetes.defaultContext | quote }}
+      defaultNamespace: {{ .Values.config.kubernetes.defaultNamespace | quote }}
+    
+    argocd:
+      url: {{ .Values.config.argocd.url | quote }}
+      authToken: "${ARGOCD_TOKEN}"
+      insecure: {{ .Values.config.argocd.insecure }}
+    
+    gitlab:
+      url: {{ .Values.config.gitlab.url | quote }}
+      authToken: "${GITLAB_TOKEN}"
+      apiVersion: {{ .Values.config.gitlab.apiVersion | quote }}
+      projectPath: {{ .Values.config.gitlab.projectPath | quote }}
+    
+    claude:
+      apiKey: "${CLAUDE_API_KEY}"
+      baseURL: {{ .Values.config.claude.baseURL | quote }}
+      modelID: {{ .Values.config.claude.modelID | quote }}
+      maxTokens: {{ .Values.config.claude.maxTokens }}
+      temperature: {{ .Values.config.claude.temperature }}
+

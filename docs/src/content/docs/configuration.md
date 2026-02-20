@@ -72,11 +72,11 @@ claude:
   # Claude API base URL
   baseURL: "https://api.anthropic.com"
   # Claude model ID
-  modelID: "claude-3-haiku-20240307"
+  modelID: "claude-sonnet-4.5-20250514"
   # Maximum tokens for Claude responses
-  maxTokens: 4096
+  maxTokens: 8192
   # Temperature for Claude responses (0.0-1.0)
-  temperature: 0.7
+  temperature: 0.3
 ```
 
 ## Configuration Options
@@ -124,9 +124,9 @@ claude:
 |--------|-------------|---------|
 | `apiKey` | Claude API key | - |
 | `baseURL` | Claude API base URL | "https://api.anthropic.com" |
-| `modelID` | Claude model ID | "claude-3-haiku-20240307" |
-| `maxTokens` | Maximum tokens for response | 4096 |
-| `temperature` | Temperature for responses (0.0-1.0) | 0.7 |
+| `modelID` | Claude model ID | "claude-sonnet-4.5-20250514" |
+| `maxTokens` | Maximum tokens for response | 8192 |
+| `temperature` | Temperature for responses (0.0-1.0) | 0.3 |
 
 ## Environment Variables
 
@@ -217,19 +217,21 @@ gitlab:
 
 ### Model Selection
 
-Kubernetes Claude MCP supports different Claude model variants. The default is `claude-3-haiku-20240307`, but you can choose others based on your needs:
+Kubernetes Claude MCP supports different Claude model variants. The default is `claude-sonnet-4.5-20250514` (Claude Sonnet 4.5), but you can choose others based on your needs:
 
-- `claude-3-opus-20240229` - Most capable model, best for complex analysis
-- `claude-3-sonnet-20240229` - Balanced performance and speed
-- `claude-3-haiku-20240307` - Fastest model, suitable for most use cases
+- `claude-sonnet-4.5-20250514` - Latest and most capable model (recommended)
+- `claude-sonnet-4-20250514` - Claude Sonnet 4, excellent performance
+- `claude-3-5-sonnet-20241022` - Claude 3.5 Sonnet, balanced performance
+- `claude-3-opus-20240229` - Claude 3 Opus, good for complex analysis
+- `claude-3-haiku-20240307` - Claude 3 Haiku, fastest model
 
 ### Response Parameters
 
 You can adjust two parameters that affect Claude's responses:
 
-1. `maxTokens` - Maximum number of tokens in the response (1-4096)
+1. `maxTokens` - Maximum number of tokens in the response (1-8192)
 2. `temperature` - Controls randomness in responses (0.0-1.0)
-   - Lower values (e.g., 0.3) make responses more deterministic
+   - Lower values (e.g., 0.3) make responses more deterministic and focused
    - Higher values (e.g., 0.7) make responses more creative
 
 For troubleshooting and analysis, a temperature of 0.3-0.5 is recommended.
@@ -277,7 +279,7 @@ kubernetes:
 
 claude:
   apiKey: "your_claude_api_key"
-  modelID: "claude-3-haiku-20240307"
+  modelID: "claude-sonnet-4.5-20250514"
 ```
 
 ### Production Kubernetes Configuration
@@ -307,9 +309,9 @@ gitlab:
 claude:
   apiKey: "${CLAUDE_API_KEY}"
   baseURL: "https://api.anthropic.com"
-  modelID: "claude-3-haiku-20240307"
-  maxTokens: 4096
-  temperature: 0.5
+  modelID: "claude-sonnet-4.5-20250514"
+  maxTokens: 8192
+  temperature: 0.3
 ```
 
 ## Troubleshooting Configuration

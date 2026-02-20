@@ -1,0 +1,31 @@
+server:
+  address: ":8080"
+  readTimeout: 30
+  writeTimeout: 60
+  auth:
+    apiKey: "${API_KEY}"
+
+kubernetes:
+  kubeconfig: ""
+  inCluster: true
+  defaultContext: ""
+  defaultNamespace: "production"
+
+argocd:
+  url: "https://argocd.example.com"
+  authToken: "${ARGOCD_TOKEN}"
+  insecure: false
+
+gitlab:
+  url: "https://gitlab.example.com"
+  authToken: "${GITLAB_TOKEN}"
+  apiVersion: "v4"
+  projectPath: "production/app"
+
+claude:
+  apiKey: "${CLAUDE_API_KEY}"
+  baseURL: "https://api.anthropic.com"
+  modelID: "claude-sonnet-4.5-20250514"
+  maxTokens: 8192
+  temperature: 0.3
+

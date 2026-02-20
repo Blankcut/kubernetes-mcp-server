@@ -6,9 +6,19 @@
 
 # Claude Kubernetes MCP Server
 
+[![CI](https://github.com/Blankcut/kubernetes-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/Blankcut/kubernetes-mcp-server/actions/workflows/ci.yml)
+[![Release](https://github.com/Blankcut/kubernetes-mcp-server/actions/workflows/release.yml/badge.svg)](https://github.com/Blankcut/kubernetes-mcp-server/actions/workflows/release.yml)
+[![Docker Pulls](https://img.shields.io/docker/pulls/blankcut/kubernetes-mcp-server)](https://hub.docker.com/r/blankcut/kubernetes-mcp-server)
+[![Docker Image Size](https://img.shields.io/docker/image-size/blankcut/kubernetes-mcp-server/latest)](https://hub.docker.com/r/blankcut/kubernetes-mcp-server)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Blankcut/kubernetes-mcp-server)](https://goreportcard.com/report/github.com/Blankcut/kubernetes-mcp-server)
+[![License](https://img.shields.io/github/license/Blankcut/kubernetes-mcp-server)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/Blankcut/kubernetes-mcp-server)](https://github.com/Blankcut/kubernetes-mcp-server/releases)
+
+> A Model Context Protocol (MCP) server for Kubernetes cluster management with ArgoCD and GitLab integration.
+
 This repository contains the Claude Kubernetes MCP (Model Context Protocol) server, built in Go. The server integrates with ArgoCD, GitLab, Claude AI, and Kubernetes to enable advanced control and automation of Kubernetes environments.
 
-[See Our Documentation Here](https://kubernetes-mcp-server.dropasite.com/)
+[See Our Documentation Here](https://kubernetes-mcp-server.blankcut.com/)
 
 ## Table of Contents
 - [Overview](#overview)
@@ -92,9 +102,9 @@ gitlab:
 claude:
   apiKey: "${API_KEY}"
   baseURL: "https://api.anthropic.com"
-  modelID: "claude-3-haiku-20240307"
-  maxTokens: 4096
-  temperature: 0.7
+  modelID: "claude-sonnet-4.5-20250514"
+  maxTokens: 8192
+  temperature: 0.3
 ```
 
 You can use the provided Go templates or environment variable interpolation method.

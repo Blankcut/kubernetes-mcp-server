@@ -1,0 +1,31 @@
+server:
+  address: ":8080"
+  readTimeout: 30
+  writeTimeout: 60
+  auth:
+    apiKey: "dev-api-key-change-me"
+
+kubernetes:
+  kubeconfig: ""
+  inCluster: false
+  defaultContext: ""
+  defaultNamespace: "default"
+
+argocd:
+  url: "http://localhost:8080"
+  authToken: "dev-argocd-token"
+  insecure: true
+
+gitlab:
+  url: "https://gitlab.com"
+  authToken: "dev-gitlab-token"
+  apiVersion: "v4"
+  projectPath: "dev/test-project"
+
+claude:
+  apiKey: "dev-claude-api-key"
+  baseURL: "https://api.anthropic.com"
+  modelID: "claude-sonnet-4.5-20250514"
+  maxTokens: 4096
+  temperature: 0.5
+

@@ -86,9 +86,9 @@ gitlab:
 claude:
   apiKey: "${CLAUDE_API_KEY}"
   baseURL: "https://api.anthropic.com"
-  modelID: "claude-3-haiku-20240307"
-  maxTokens: 4096
-  temperature: 0.7
+  modelID: "claude-sonnet-4.5-20250514"
+  maxTokens: 8192
+  temperature: 0.3
 ```
 
 ### Step 4: Start the Service
@@ -375,9 +375,9 @@ gitlab:
 claude:
   apiKey: "your_claude_api_key"
   baseURL: "https://api.anthropic.com"
-  modelID: "claude-3-haiku-20240307"
-  maxTokens: 4096
-  temperature: 0.7
+  modelID: "claude-sonnet-4.5-20250514"
+  maxTokens: 8192
+  temperature: 0.3
 ```
 
 ### Step 4: Run the Server

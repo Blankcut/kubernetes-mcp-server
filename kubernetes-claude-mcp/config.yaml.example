@@ -1,0 +1,91 @@
+server:
+  address: ":8080"
+  readTimeout: 30
+  writeTimeout: 60
+  auth:
+    # Generate a secure API key for authentication
+    # Example: openssl rand -base64 32
+    apiKey: "your-secure-api-key-here" 
+
+kubernetes:
+  # Leave empty to use default kubeconfig from ~/.kube/config
+  kubeconfig: ""
+  # Set to true when running inside a Kubernetes cluster
+  inCluster: false
+  # Can leave empty to use current context from kubeconfig
+  defaultContext: ""
+  # Default namespace for operations
+  defaultNamespace: "default"
+
+argocd:
+  # ArgoCD API server URL
+  # Example: "https://argocd.example.com" or "http://argocd.example.com:8080"
+  url: "https://argocd.example.com"
+  
+  # Authentication token (preferred method)
+  # Generate token: argocd account generate-token --account <account-name>
+  authToken: "your-argocd-auth-token-here"
+  
+  # Alternative: Username/password authentication
+  # Uncomment if using username/password instead of token
+  #username: "admin"
+  #password: "your-argocd-password"
+  
+  # Allow insecure connections (set to true for http or self-signed certs)
+  # WARNING: Only use in development/testing environments
+  insecure: false
+
+gitlab:
+  # GitLab API URL
+  # For GitLab.com: "https://gitlab.com"
+  # For self-hosted: "https://gitlab.example.com"
+  url: "https://gitlab.com"
+  
+  # GitLab Personal Access Token
+  # Create at: https://gitlab.com/-/profile/personal_access_tokens
+  # Required scopes: api, read_repository
+  authToken: "your-gitlab-personal-access-token"
+  
+  # API version (usually v4)
+  apiVersion: "v4"
+  
+  # Default project path (optional)
+  # Example: "username/project-name" or "group/subgroup/project"
+  projectPath: "your-username/your-project"
+
+claude:
+  # Claude API key from Anthropic
+  # Get your key at: https://console.anthropic.com/
+  apiKey: "your-claude-api-key-here"
+  
+  # Claude API base URL (usually no need to change)
+  baseURL: "https://api.anthropic.com"
+  
+  # Model ID to use
+  # Options:
+  #   - claude-sonnet-4.5-20250514 (latest, most capable - recommended)
+  #   - claude-sonnet-4-20250514
+  #   - claude-3-5-sonnet-20241022
+  #   - claude-3-opus-20240229
+  modelID: "claude-sonnet-4.5-20250514"
+  
+  # Maximum tokens to generate
+  # Range: 1-8192 (higher = more detailed responses but slower)
+  maxTokens: 8192
+  
+  # Temperature for generation
+  # Range: 0.0-1.0 (lower = more focused, higher = more creative)
+  temperature: 0.3
+
+# Environment Variable Overrides:
+# You can override any of these settings using environment variables:
+#
+# KUBECONFIG - Path to kubeconfig file
+# CLAUDE_API_KEY - Claude API key
+# ARGOCD_SERVER - ArgoCD server URL
+#
+# Example:
+#   export CLAUDE_API_KEY="sk-ant-api03-..."
+#   export KUBECONFIG="/path/to/kubeconfig"
+#   go run ./cmd/server/main.go --config config.yaml
+

@@ -1,0 +1,21 @@
+apiVersion: v2
+name: kubernetes-mcp-server
+description: A Helm chart for Kubernetes MCP Server with ArgoCD and GitLab integration
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - mcp
+  - argocd
+  - gitlab
+  - claude
+  - ai
+home: https://github.com/Blankcut/kubernetes-mcp-server
+sources:
+  - https://github.com/Blankcut/kubernetes-mcp-server
+maintainers:
+  - name: Blankcut
+    email: ecda909@gmail.com
+icon: https://raw.githubusercontent.com/Blankcut/kubernetes-mcp-server/main/docs/public/logo.png
+

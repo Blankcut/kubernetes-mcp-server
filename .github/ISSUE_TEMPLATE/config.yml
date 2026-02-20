@@ -1,0 +1,9 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://kubernetes-mcp-server.blankcut.com/
+    about: Check our documentation for guides and API reference
+  - name: Discussions
+    url: https://github.com/Blankcut/kubernetes-mcp-server/discussions
+    about: Ask questions and discuss ideas with the community
+
