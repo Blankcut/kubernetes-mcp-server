@@ -1,4 +1,4 @@
-FROM golang:1.20-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Install git and CA certificates for private repos if needed
 RUN apk update && apk add --no-cache git ca-certificates && update-ca-certificates
