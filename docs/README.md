@@ -2,6 +2,8 @@
 
 This directory contains the documentation site for the Kubernetes Claude MCP server. The site is built using [Astro](https://astro.build/), a modern static site generator.
 
+The documentation is automatically built and published as a Docker image to `blankcut/kubernetes-mcp-server-docs:latest` on every push to the main branch.
+
 ## Development
 
 ### Prerequisites
