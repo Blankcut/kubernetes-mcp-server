@@ -6,21 +6,21 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   description="The official documentation for Kubernetes Claude MCP Server, integrating Claude AI with Kubernetes, ArgoCD, and GitLab">
   
   <!-- Hero Section -->
-  <section class="py-20 px-4 bg-gradient-to-b from-secondary-200 to-secondary-100">
+  <section class="py-16 md:py-20 px-4 bg-gradient-to-b from-secondary-200 to-secondary-100">
     <div class="container mx-auto max-w-5xl">
       <div class="flex flex-col items-center text-center">
-        <img src="/images/logo.svg" alt="Kubernetes Claude MCP Logo" class="w-48 h-48 mb-6">
-        <h1 class="text-5xl font-bold tracking-tight mb-6 text-primary-600">
+        <img src="/images/logo.svg" alt="Kubernetes Claude MCP Logo" class="w-32 h-32 md:w-48 md:h-48 mb-6">
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-6 text-primary-600">
           Kubernetes Claude MCP
         </h1>
-        <p class="text-xl text-slate-700 mb-8 max-w-2xl">
+        <p class="text-lg md:text-xl text-slate-700 mb-8 max-w-2xl">
           Model Context Protocol server for Kubernetes, integrating Claude AI with ArgoCD and GitLab for advanced GitOps workflows.
         </p>
         <div class="flex flex-col sm:flex-row gap-4">
-          <a href="/docs/introduction" class="btn bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-md">
+          <a href="/docs/introduction" class="btn bg-primary-500 hover:bg-primary-600 text-white font-medium py-3 px-8 rounded-md transition-colors shadow-md hover:shadow-lg">
             Get Started
           </a>
-          <a href="https://github.com/blankcut/kubernetes-mcp-server" class="btn bg-secondary-200 hover:bg-secondary-300 text-primary-700 font-medium py-2 px-6 rounded-md" target="_blank" rel="noopener">
+          <a href="https://github.com/blankcut/kubernetes-mcp-server" class="btn bg-secondary-200 hover:bg-secondary-300 text-primary-700 font-medium py-3 px-8 rounded-md transition-colors shadow-md hover:shadow-lg" target="_blank" rel="noopener">
             GitHub
           </a>
         </div>
@@ -29,9 +29,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   </section>
 
   <!-- Features Section -->
-  <section class="py-16 px-4 bg-secondary-100">
+  <section class="py-12 md:py-16 px-4 bg-secondary-100">
     <div class="container mx-auto max-w-6xl">
-      <h2 class="text-3xl font-bold text-center mb-12 text-primary-600">Key Features</h2>
+      <h2 class="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12 text-primary-600">Key Features</h2>
       
       <div class="grid md:grid-cols-3 gap-8">
         <!-- Feature 1 -->
@@ -105,9 +105,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   </section>
 
   <!-- How It Works Section -->
-  <section class="py-16 px-4">
+  <section class="py-12 md:py-16 px-4">
     <div class="container mx-auto max-w-6xl">
-      <h2 class="text-3xl font-bold text-center mb-12 text-primary-600">How It Works</h2>
+      <h2 class="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12 text-primary-600">How It Works</h2>
       
       <div class="grid md:grid-cols-3 gap-8 text-center">
         <!-- Step 1 -->
@@ -147,19 +147,19 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   </section>
 
   <!-- CTA Section -->
-  <section class="py-16 px-4 bg-secondary-100">
+  <section class="py-12 md:py-16 px-4 bg-secondary-100">
     <div class="container mx-auto max-w-5xl">
       <div class="bg-primary-500 text-white rounded-lg p-8 md:p-12 shadow-lg">
         <div class="text-center">
-          <h2 class="text-3xl font-bold mb-4">Ready to transform your Kubernetes experience?</h2>
-          <p class="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
+          <h2 class="text-2xl md:text-3xl font-bold mb-4">Ready to transform your Kubernetes experience?</h2>
+          <p class="text-base md:text-lg opacity-90 mb-8 max-w-2xl mx-auto">
             Get started with Kubernetes Claude MCP today and enhance your GitOps workflows with AI-powered analysis and troubleshooting.
           </p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/docs/quick-start" class="btn bg-white text-primary-700 hover:bg-secondary-100 font-medium py-2 px-6 rounded-md">
+            <a href="/docs/quick-start" class="btn bg-white text-primary-700 hover:bg-secondary-100 font-medium py-3 px-8 rounded-md transition-colors shadow-md hover:shadow-lg">
               Quick Start Guide
             </a>
-            <a href="/docs/installation" class="btn bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-6 rounded-md border border-primary-400">
+            <a href="/docs/installation" class="btn bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-8 rounded-md border border-primary-400 transition-colors shadow-md hover:shadow-lg">
               Installation Guide
             </a>
           </div>

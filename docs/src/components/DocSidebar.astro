@@ -11,22 +11,22 @@ const sortedDocs = allDocs.sort((a, b) =>
 const currentPath = Astro.url.pathname;
 ---
 
-<aside class="w-64 p-6 border-r border-secondary-300 bg-[#F8EDE3] hidden md:block">
-  <h2 class="text-lg font-semibold mb-4 text-primary-500">Documentation</h2>
+<aside class="w-64 p-6 border-r border-secondary-300 bg-[#F8EDE3] hidden md:block sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+  <h2 class="text-lg font-semibold mb-4 text-primary-600">Documentation</h2>
   <nav>
-    <ul class="space-y-2">
+    <ul class="space-y-1">
       {sortedDocs.map(doc => {
-        const isActive = currentPath === `/docs/${doc.slug}` || 
+        const isActive = currentPath === `/docs/${doc.slug}` ||
                          currentPath === `/${doc.slug}`;
-        
+
         return (
           <li>
-            <a 
+            <a
               href={`/docs/${doc.slug}`}
-              class={`block py-1 px-2 rounded ${
-                isActive 
-                ? 'bg-secondary-200 text-primary-700 font-medium' 
-                : 'text-slate-700 hover:text-primary-600'
+              class={`block py-2 px-3 rounded-md transition-colors ${
+                isActive
+                ? 'bg-primary-100 text-primary-700 font-semibold'
+                : 'text-slate-700 hover:bg-secondary-200 hover:text-primary-600'
               }`}
             >
               {doc.data.title}
