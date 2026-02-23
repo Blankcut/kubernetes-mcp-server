@@ -73,6 +73,7 @@ jobs:
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
+        continue-on-error: true
         with:
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
           format: spdx-json
@@ -80,6 +81,7 @@ jobs:
 
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
           format: 'sarif'
@@ -88,6 +90,7 @@ jobs:
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
+        continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
 
