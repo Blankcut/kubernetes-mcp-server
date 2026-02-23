@@ -160,7 +160,11 @@ func (p *CredentialProvider) loadArgoCDCredentials(ctx context.Context) error {
 	}
 
 	// Primary source: Environment variables
+	// Check both ARGOCD_AUTH_TOKEN and ARGOCD_TOKEN for compatibility
 	token := os.Getenv("ARGOCD_AUTH_TOKEN")
+	if token == "" {
+		token = os.Getenv("ARGOCD_TOKEN")
+	}
 	if token != "" {
 		p.credentials[ServiceArgoCD] = &Credentials{
 			Token: token,
@@ -233,7 +237,11 @@ func (p *CredentialProvider) loadGitLabCredentials(ctx context.Context) error {
 	}
 
 	// Primary source: Environment variables
+	// Check both GITLAB_AUTH_TOKEN and GITLAB_TOKEN for compatibility
 	token := os.Getenv("GITLAB_AUTH_TOKEN")
+	if token == "" {
+		token = os.Getenv("GITLAB_TOKEN")
+	}
 	if token != "" {
 		p.credentials[ServiceGitLab] = &Credentials{
 			Token: token,
