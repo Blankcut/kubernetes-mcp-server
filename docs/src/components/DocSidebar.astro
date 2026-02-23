@@ -11,22 +11,24 @@ const sortedDocs = allDocs.sort((a, b) =>
 const currentPath = Astro.url.pathname;
 ---
 
-<aside class="w-64 p-6 border-r border-secondary-300 bg-[#F8EDE3] hidden md:block sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
-  <h2 class="text-lg font-semibold mb-4 text-primary-600">Documentation</h2>
+<aside class="sidebar-panel w-64 p-6 border-r border-secondary-300 bg-[#F8EDE3] hidden md:block sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+  <h2 class="text-xs font-bold uppercase tracking-widest mb-4 text-slate-500">Documentation</h2>
   <nav>
-    <ul class="space-y-1">
+    <ul class="space-y-0.5">
       {sortedDocs.map(doc => {
-        const isActive = currentPath === `/docs/${doc.slug}` ||
+        const docPath = `/docs/${doc.slug}`;
+        const isActive = currentPath === docPath ||
+                         currentPath === `${docPath}/` ||
                          currentPath === `/${doc.slug}`;
 
         return (
           <li>
             <a
-              href={`/docs/${doc.slug}`}
-              class={`block py-2 px-3 rounded-md transition-colors ${
+              href={docPath}
+              class={`sidebar-link group flex items-center py-2 px-3 rounded-md text-sm transition-all duration-200 ${
                 isActive
-                ? 'bg-primary-100 text-primary-700 font-semibold'
-                : 'text-slate-700 hover:bg-secondary-200 hover:text-primary-600'
+                ? 'active bg-secondary-200 text-primary-800 font-semibold border-l-[3px] border-primary-500 pl-[10px]'
+                : 'text-slate-600 hover:bg-secondary-200/60 hover:text-primary-700 border-l-[3px] border-transparent pl-[10px]'
               }`}
             >
               {doc.data.title}

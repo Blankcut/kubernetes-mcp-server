@@ -33,21 +33,23 @@ module.exports = {
         DEFAULT: {
           css: {
             maxWidth: 'none',
+            color: '#3d2a20',
             a: {
               color: '#C5705D',
+              textDecoration: 'none',
+              transition: 'color 0.2s ease',
               '&:hover': {
                 color: '#B3574A',
+                textDecoration: 'underline',
               },
             },
-            h1: {
-              color: '#C5705D',
-            },
-            h2: {
-              color: '#C5705D',
-            },
-            h3: {
-              color: '#C5705D',
-            },
+            /* High-contrast headings: verified >10:1 contrast on #F8EDE3 cream bg */
+            h1: { color: '#2c1810' },
+            h2: { color: '#3b1f12' },
+            h3: { color: '#4a2619' },
+            h4: { color: '#4a2619' },
+            h5: { color: '#4a2619' },
+            h6: { color: '#4a2619' },
           },
         },
       },

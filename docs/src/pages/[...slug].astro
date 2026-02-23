@@ -41,12 +41,12 @@ console.log(`Rendering page for slug: ${slug}, entry: ${entry?.slug}`);
 <BaseLayout title={entry.data.title || "Documentation"}>
   <div class="container mx-auto px-4 py-8 md:py-12">
     <div class="max-w-4xl mx-auto">
-      <h1 class="text-3xl md:text-4xl font-bold mb-4 text-primary-600">{entry.data.title}</h1>
+      <h1 class="text-3xl md:text-4xl font-bold mb-4 text-[#2c1810]">{entry.data.title}</h1>
       {entry.data.description && (
         <p class="text-lg md:text-xl text-slate-600 mb-8">{entry.data.description}</p>
       )}
 
-      <div class="prose prose-slate prose-lg max-w-none prose-headings:text-primary-600 prose-a:text-primary-500 prose-a:no-underline hover:prose-a:underline prose-code:text-primary-700 prose-code:bg-secondary-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-800 prose-pre:text-slate-100">
+      <div class="prose prose-lg max-w-none prose-a:text-primary-500 prose-a:no-underline hover:prose-a:underline prose-code:text-primary-700 prose-code:bg-secondary-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-800 prose-pre:text-slate-100">
         <Content />
       </div>
     </div>
