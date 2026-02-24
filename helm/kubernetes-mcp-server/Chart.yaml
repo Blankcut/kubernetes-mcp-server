@@ -2,8 +2,8 @@ apiVersion: v2
 name: kubernetes-mcp-server
 description: A Helm chart for Kubernetes MCP Server with ArgoCD and GitLab integration
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 1.0.3
+appVersion: "1.0.3"
 keywords:
   - kubernetes
   - mcp

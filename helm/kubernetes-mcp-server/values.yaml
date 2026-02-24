@@ -94,7 +94,7 @@ config:
   claude:
     apiKey: ""
     baseURL: "https://api.anthropic.com"
-    modelID: "claude-sonnet-4.5-20250514"
+    modelID: "claude-sonnet-4-6"
     maxTokens: 8192
     temperature: 0.3
 
