@@ -69,14 +69,23 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("error reading config file: %w", err)
 	}
 
+	// Expand environment variables in the config file content
+	// This allows using ${VAR_NAME} syntax in the YAML file
+	expandedData := os.ExpandEnv(string(data))
+
 	// Parse YAML
-	if err := yaml.Unmarshal(data, config); err != nil {
+	if err := yaml.Unmarshal([]byte(expandedData), config); err != nil {
 		return nil, fmt.Errorf("error parsing config file: %w", err)
 	}
 
 	// Override with environment variables if present
 	if kubeconfig := os.Getenv("KUBECONFIG"); kubeconfig != "" {
 		config.Kubernetes.KubeConfig = kubeconfig
+	}
+
+	// API Key settings (for server authentication)
+	if apiKey := os.Getenv("API_KEY"); apiKey != "" {
+		config.Server.Auth.APIKey = apiKey
 	}
 
 	// Claude API settings
