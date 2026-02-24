@@ -48,18 +48,11 @@ claude:
 	}
 
 	// Set environment variables
-	os.Setenv("TEST_API_KEY", "test-api-key-12345")
-	os.Setenv("TEST_ARGOCD_URL", "https://argocd.test.com")
-	os.Setenv("TEST_ARGOCD_TOKEN", "test-argocd-token-67890")
-	os.Setenv("TEST_GITLAB_TOKEN", "test-gitlab-token-abcde")
-	os.Setenv("TEST_CLAUDE_KEY", "test-claude-key-fghij")
-	defer func() {
-		os.Unsetenv("TEST_API_KEY")
-		os.Unsetenv("TEST_ARGOCD_URL")
-		os.Unsetenv("TEST_ARGOCD_TOKEN")
-		os.Unsetenv("TEST_GITLAB_TOKEN")
-		os.Unsetenv("TEST_CLAUDE_KEY")
-	}()
+	t.Setenv("TEST_API_KEY", "test-api-key-12345")
+	t.Setenv("TEST_ARGOCD_URL", "https://argocd.test.com")
+	t.Setenv("TEST_ARGOCD_TOKEN", "test-argocd-token-67890")
+	t.Setenv("TEST_GITLAB_TOKEN", "test-gitlab-token-abcde")
+	t.Setenv("TEST_CLAUDE_KEY", "test-claude-key-fghij")
 
 	// Load the config
 	cfg, err := Load(configPath)
@@ -131,8 +124,7 @@ claude:
 	}
 
 	// Set environment variables to override config file values
-	os.Setenv("API_KEY", "env-api-key-12345")
-	defer os.Unsetenv("API_KEY")
+	t.Setenv("API_KEY", "env-api-key-12345")
 
 	// Load the config
 	cfg, err := Load(configPath)
@@ -145,4 +137,3 @@ claude:
 		t.Errorf("Expected API key to be overridden to 'env-api-key-12345', got '%s'", cfg.Server.Auth.APIKey)
 	}
 }
-
