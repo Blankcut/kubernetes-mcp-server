@@ -132,12 +132,25 @@ func (c *Client) attemptRequest(ctx context.Context, method, endpoint string, bo
 		return nil, fmt.Errorf("invalid GitLab URL: %w", err)
 	}
 
-	// Add API version if not already in the endpoint
-	if !strings.HasPrefix(endpoint, "/api") {
-		endpoint = path.Join("/api", c.config.APIVersion, endpoint)
+	// Parse the endpoint to separate path from query parameters
+	endpointURL, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("invalid endpoint: %w", err)
 	}
 
-	u.Path = path.Join(u.Path, endpoint)
+	// Add API version if not already in the endpoint path
+	endpointPath := endpointURL.Path
+	if !strings.HasPrefix(endpointPath, "/api") {
+		endpointPath = path.Join("/api", c.config.APIVersion, endpointPath)
+	}
+
+	// Set the full path
+	u.Path = path.Join(u.Path, endpointPath)
+
+	// Preserve query parameters from the endpoint
+	if endpointURL.RawQuery != "" {
+		u.RawQuery = endpointURL.RawQuery
+	}
 
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {
@@ -151,7 +164,7 @@ func (c *Client) attemptRequest(ctx context.Context, method, endpoint string, bo
 
 	req.Header.Set("Content-Type", "application/json")
 
-	c.logger.Debug("Sending request to GitLab API", "method", method, "endpoint", endpoint)
+	c.logger.Debug("Sending request to GitLab API", "method", method, "url", u.String())
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
