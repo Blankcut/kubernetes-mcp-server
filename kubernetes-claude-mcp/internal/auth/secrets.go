@@ -66,28 +66,28 @@ func (sm *SecretsManager) GetCredentials(ctx context.Context, service string) (*
 	creds := &Credentials{}
 
 	// Try to read token
-	tokenBytes, err := os.ReadFile(tokenPath) //nolint:gosec
+	tokenBytes, err := os.ReadFile(tokenPath) //nolint:gosec // path is derived from trusted secrets-mount configuration
 	if err == nil {
 		creds.Token = string(tokenBytes)
 		sm.logger.Debug("Loaded token from file", "service", service)
 	}
 
 	// Try to read API key
-	apiKeyBytes, err := os.ReadFile(apiKeyPath) //nolint:gosec
+	apiKeyBytes, err := os.ReadFile(apiKeyPath) //nolint:gosec // path is derived from trusted secrets-mount configuration
 	if err == nil {
 		creds.APIKey = string(apiKeyBytes)
 		sm.logger.Debug("Loaded API key from file", "service", service)
 	}
 
 	// Try to read username
-	usernameBytes, err := os.ReadFile(usernamePath) //nolint:gosec
+	usernameBytes, err := os.ReadFile(usernamePath) //nolint:gosec // path is derived from trusted secrets-mount configuration
 	if err == nil {
 		creds.Username = string(usernameBytes)
 		sm.logger.Debug("Loaded username from file", "service", service)
 	}
 
 	// Try to read password
-	passwordBytes, err := os.ReadFile(passwordPath) //nolint:gosec
+	passwordBytes, err := os.ReadFile(passwordPath) //nolint:gosec // path is derived from trusted secrets-mount configuration
 	if err == nil {
 		creds.Password = string(passwordBytes)
 		sm.logger.Debug("Loaded password from file", "service", service)
