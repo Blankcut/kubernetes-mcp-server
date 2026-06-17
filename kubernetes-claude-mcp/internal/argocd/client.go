@@ -207,7 +207,7 @@ func (c *Client) createSession(ctx context.Context, username, password string) (
 	}
 
 	// Convert to JSON
-	sessionReqBody, err := json.Marshal(sessionReq)
+	sessionReqBody, err := json.Marshal(sessionReq) //nolint:gosec // G117: credentials are intentionally sent to the ArgoCD session endpoint to authenticate
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to marshal session request: %w", err)
 	}
@@ -315,7 +315,7 @@ func (c *Client) refreshToken(ctx context.Context) (string, time.Time, error) {
 	}
 
 	// Convert to JSON
-	sessionReqBody, err := json.Marshal(sessionReq)
+	sessionReqBody, err := json.Marshal(sessionReq) //nolint:gosec // G117: credentials are intentionally sent to the ArgoCD session endpoint to authenticate
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to marshal session request: %w", err)
 	}
