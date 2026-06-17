@@ -21,9 +21,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o mcp-server ./cmd/
 # Use a minimal alpine image for the final stage
 FROM alpine:3.24
 
-# Install AWS CLI v1 (works on Alpine)
-RUN apk add --no-cache curl unzip bash python3 py3-pip && \
-    pip install awscli
+# Install AWS CLI from the Alpine community repo. A pip install is rejected on
+# Alpine 3.24 (Python 3.12) with PEP 668 "externally-managed-environment".
+RUN apk add --no-cache curl unzip bash aws-cli
 
 # Create non-root user
 RUN addgroup -g 1001 mcp && \
