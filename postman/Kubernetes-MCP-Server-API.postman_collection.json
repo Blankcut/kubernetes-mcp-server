@@ -1,0 +1,472 @@
+{
+	"info": {
+		"_postman_id": "kubernetes-mcp-server-api",
+		"name": "Kubernetes MCP Server API",
+		"description": "Comprehensive API collection for testing Kubernetes MCP Server endpoints including Kubernetes, ArgoCD, GitLab, and Claude AI integrations.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "apikey",
+		"apikey": [
+			{
+				"key": "value",
+				"value": "{{api_key}}",
+				"type": "string"
+			},
+			{
+				"key": "key",
+				"value": "X-API-Key",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "api_key",
+			"value": "your-api-key-here",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health Endpoints",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "health"]
+						},
+						"description": "Check the health status of the server and all connected services (Kubernetes, ArgoCD, GitLab, Claude)."
+					}
+				},
+				{
+					"name": "Liveness Probe",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/health/live",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "health", "live"]
+						},
+						"description": "Kubernetes liveness probe endpoint. Returns 200 if the application is running."
+					}
+				},
+				{
+					"name": "Readiness Probe",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/health/ready",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "health", "ready"]
+						},
+						"description": "Kubernetes readiness probe endpoint. Returns 200 if the application is ready to serve traffic."
+					}
+				}
+			],
+			"description": "Health check endpoints that do not require authentication."
+		},
+		{
+			"name": "Kubernetes Resources",
+			"item": [
+				{
+					"name": "List Namespaces",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/namespaces",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "namespaces"]
+						},
+						"description": "List all namespaces in the Kubernetes cluster."
+					}
+				},
+				{
+					"name": "List Resources",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/resources/:resource?namespace=default",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "resources", ":resource"],
+							"query": [
+								{
+									"key": "namespace",
+									"value": "default",
+									"description": "Optional: Filter by namespace"
+								}
+							],
+							"variable": [
+								{
+									"key": "resource",
+									"value": "pods",
+									"description": "Resource type (e.g., pods, deployments, services)"
+								}
+							]
+						},
+						"description": "List resources of a specific type. Examples: pods, deployments, services, configmaps, secrets."
+					}
+				},
+				{
+					"name": "Get Resource",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/resources/:resource/:name?namespace=default",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "resources", ":resource", ":name"],
+							"query": [
+								{
+									"key": "namespace",
+									"value": "default",
+									"description": "Required for namespaced resources"
+								}
+							],
+							"variable": [
+								{
+									"key": "resource",
+									"value": "pods"
+								},
+								{
+									"key": "name",
+									"value": "my-pod"
+								}
+							]
+						},
+						"description": "Get details of a specific resource by name."
+					}
+				},
+				{
+					"name": "Get Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/events?namespace=default&resource=pod&name=my-pod",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "events"],
+							"query": [
+								{
+									"key": "namespace",
+									"value": "default",
+									"description": "Optional: Filter by namespace"
+								},
+								{
+									"key": "resource",
+									"value": "pod",
+									"description": "Optional: Filter by resource type"
+								},
+								{
+									"key": "name",
+									"value": "my-pod",
+									"description": "Optional: Filter by resource name"
+								}
+							]
+						},
+						"description": "Get Kubernetes events, optionally filtered by namespace, resource type, and name."
+					}
+				}
+			],
+			"description": "Kubernetes resource management endpoints."
+		},
+		{
+			"name": "Namespace Analysis",
+			"item": [
+				{
+					"name": "Get Namespace Topology",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/namespaces/:namespace/topology",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "namespaces", ":namespace", "topology"],
+							"variable": [
+								{
+									"key": "namespace",
+									"value": "default"
+								}
+							]
+						},
+						"description": "Get the topology view of all resources in a namespace."
+					}
+				},
+				{
+					"name": "Get Namespace Graph",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/namespaces/:namespace/graph",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "namespaces", ":namespace", "graph"],
+							"variable": [
+								{
+									"key": "namespace",
+									"value": "default"
+								}
+							]
+						},
+						"description": "Get a graph representation of resource relationships in a namespace."
+					}
+				},
+				{
+					"name": "Get Namespace Resources",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/namespaces/:namespace/resources",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "namespaces", ":namespace", "resources"],
+							"variable": [
+								{
+									"key": "namespace",
+									"value": "default"
+								}
+							]
+						},
+						"description": "Get all resources in a namespace."
+					}
+				},
+				{
+					"name": "Get Namespace Analysis",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/namespaces/:namespace/analysis",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "namespaces", ":namespace", "analysis"],
+							"variable": [
+								{
+									"key": "namespace",
+									"value": "default"
+								}
+							]
+						},
+						"description": "Get AI-powered analysis of a namespace including health, issues, and recommendations."
+					}
+				}
+			],
+			"description": "Advanced namespace analysis endpoints."
+		},
+		{
+			"name": "ArgoCD",
+			"item": [
+				{
+					"name": "List Applications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/argocd/applications",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "argocd", "applications"]
+						},
+						"description": "List all ArgoCD applications."
+					}
+				},
+				{
+					"name": "Get Application",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/argocd/applications/:name",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "argocd", "applications", ":name"],
+							"variable": [
+								{
+									"key": "name",
+									"value": "my-app"
+								}
+							]
+						},
+						"description": "Get details of a specific ArgoCD application including sync status and health."
+					}
+				}
+			],
+			"description": "ArgoCD application management endpoints."
+		},
+		{
+			"name": "GitLab",
+			"item": [
+				{
+					"name": "List Projects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/gitlab/projects",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gitlab", "projects"]
+						},
+						"description": "List all accessible GitLab projects."
+					}
+				},
+				{
+					"name": "List Pipelines",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/gitlab/projects/:projectId/pipelines",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gitlab", "projects", ":projectId", "pipelines"],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "123"
+								}
+							]
+						},
+						"description": "List pipelines for a specific GitLab project."
+					}
+				}
+			],
+			"description": "GitLab integration endpoints."
+		},
+		{
+			"name": "MCP - Claude AI",
+			"item": [
+				{
+					"name": "Generic MCP Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"action\": \"analyze\",\n  \"query\": \"What is the current state of my cluster?\",\n  \"context\": \"Additional context for the AI\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "mcp"]
+						},
+						"description": "Generic MCP request for Claude AI analysis. Supports various actions like analyze, troubleshoot, etc."
+					}
+				},
+				{
+					"name": "Query Resource",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"resource\": \"pod\",\n  \"name\": \"my-pod\",\n  \"namespace\": \"default\",\n  \"query\": \"Why is this pod failing?\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp/resource",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "mcp", "resource"]
+						},
+						"description": "Query a specific Kubernetes resource with AI analysis. Automatically sets action to 'queryResource'."
+					}
+				},
+				{
+					"name": "Troubleshoot Resource",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"resource\": \"deployment\",\n  \"name\": \"my-deployment\",\n  \"namespace\": \"default\",\n  \"query\": \"Why are pods not starting?\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp/troubleshoot",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "mcp", "troubleshoot"]
+						},
+						"description": "Troubleshoot a Kubernetes resource with AI-powered diagnostics including logs, events, and recommendations."
+					}
+				},
+				{
+					"name": "Analyze Commit",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"projectId\": \"123\",\n  \"commitSha\": \"abc123def456\",\n  \"query\": \"What changes were made in this commit?\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp/commit",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "mcp", "commit"]
+						},
+						"description": "Analyze a GitLab commit with AI. Automatically sets action to 'queryCommit'."
+					}
+				},
+				{
+					"name": "Analyze Merge Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"projectId\": \"123\",\n  \"mergeRequestIID\": 42,\n  \"query\": \"Review this merge request for potential issues\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp/mergeRequest",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "mcp", "mergeRequest"]
+						},
+						"description": "Analyze a GitLab merge request with AI. Automatically sets action to 'queryMergeRequest'."
+					}
+				}
+			],
+			"description": "Claude AI-powered analysis and troubleshooting endpoints using the Model Context Protocol (MCP)."
+		}
+	]
+}
+
