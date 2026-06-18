@@ -18,7 +18,7 @@
 
 This repository contains the Claude Kubernetes MCP (Model Context Protocol) server, built in Go. The server integrates with ArgoCD, GitLab, Claude AI, and Kubernetes to enable advanced control and automation of Kubernetes environments.
 
-[See Our Documentation Here](https://kubernetes-mcp-server.blankcut.com/)
+[See Our Documentation Here](https://docs.blankcut.com/kubernetes-mcp-server/)
 
 ## Table of Contents
 - [Overview](#overview)
