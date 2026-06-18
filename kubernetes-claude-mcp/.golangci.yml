@@ -36,6 +36,9 @@ linters:
       excludes:
         - G104
         - G304
+        # G703: taint-analysis variant of G304; paths come from operator-supplied
+        # config (SECRETS_DIR etc.), not untrusted input. Same rationale as G304.
+        - G703
   exclusions:
     rules:
       - path: '_test\.go'
