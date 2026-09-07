@@ -72,6 +72,14 @@ type ClaudeFederationConfig struct {
 	WorkspaceID       string `yaml:"workspaceID"`
 }
 
+// Enabled reports whether enough is configured to attempt federation. It
+// deliberately mirrors claude.FederationConfig.Enabled so that validation and
+// the client agree on what counts as configured -- otherwise a deployment can
+// pass validation and then silently fall back to the API key path.
+func (f *ClaudeFederationConfig) Enabled() bool {
+	return f.IdentityTokenFile != "" && f.FederationRuleID != "" && f.OrganizationID != ""
+}
+
 // Load reads configuration from a file and environment variables
 func Load(path string) (*Config, error) {
 	config := &Config{}
@@ -166,8 +174,11 @@ func (c *Config) Validate() error {
 	}
 
 	// Check Claude configuration
-	if c.Claude.APIKey == "" {
-		return fmt.Errorf("claude API key is required")
+	// Either a static key or a fully configured federation block is enough.
+	// Requiring the key unconditionally would crash-loop a deployment that has
+	// completed the move to Workload Identity Federation and removed it.
+	if c.Claude.APIKey == "" && !c.Claude.Federation.Enabled() {
+		return fmt.Errorf("claude authentication is required: set claude.apiKey, or configure claude.federation for Workload Identity Federation")
 	}
 
 	if c.Claude.ModelID == "" {

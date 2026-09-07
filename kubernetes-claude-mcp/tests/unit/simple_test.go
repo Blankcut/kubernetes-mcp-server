@@ -62,7 +62,9 @@ func TestConfig_Validate_MissingClaudeAPIKey(t *testing.T) {
 
 	err := cfg.Validate()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "claude API key is required")
+	// A config with neither an API key nor a federation block still fails; the
+	// message covers both credential paths now.
+	assert.Contains(t, err.Error(), "claude authentication is required")
 }
 
 func TestConfig_Validate_MissingClaudeModelID(t *testing.T) {
