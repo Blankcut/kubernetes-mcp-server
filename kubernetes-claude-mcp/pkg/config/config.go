@@ -57,6 +57,19 @@ type ClaudeConfig struct {
 	ModelID     string  `yaml:"modelID"`
 	MaxTokens   int     `yaml:"maxTokens"`
 	Temperature float64 `yaml:"temperature"`
+	// Federation is optional. Leave it unset to authenticate with APIKey.
+	Federation ClaudeFederationConfig `yaml:"federation"`
+}
+
+// ClaudeFederationConfig configures Workload Identity Federation, an optional
+// alternative to a static API key. When unset the client keeps using APIKey, so
+// existing deployments need no changes.
+type ClaudeFederationConfig struct {
+	IdentityTokenFile string `yaml:"identityTokenFile"`
+	FederationRuleID  string `yaml:"federationRuleID"`
+	OrganizationID    string `yaml:"organizationID"`
+	ServiceAccountID  string `yaml:"serviceAccountID"`
+	WorkspaceID       string `yaml:"workspaceID"`
 }
 
 // Load reads configuration from a file and environment variables
@@ -91,6 +104,25 @@ func Load(path string) (*Config, error) {
 	// Claude API settings
 	if apiKey := os.Getenv("CLAUDE_API_KEY"); apiKey != "" {
 		config.Claude.APIKey = apiKey
+	}
+
+	// Workload Identity Federation. These names match the ones the official
+	// Anthropic SDKs read, so a workload configured for federation elsewhere
+	// needs no separate wiring here.
+	if v := os.Getenv("ANTHROPIC_IDENTITY_TOKEN_FILE"); v != "" {
+		config.Claude.Federation.IdentityTokenFile = v
+	}
+	if v := os.Getenv("ANTHROPIC_FEDERATION_RULE_ID"); v != "" {
+		config.Claude.Federation.FederationRuleID = v
+	}
+	if v := os.Getenv("ANTHROPIC_ORGANIZATION_ID"); v != "" {
+		config.Claude.Federation.OrganizationID = v
+	}
+	if v := os.Getenv("ANTHROPIC_SERVICE_ACCOUNT_ID"); v != "" {
+		config.Claude.Federation.ServiceAccountID = v
+	}
+	if v := os.Getenv("ANTHROPIC_WORKSPACE_ID"); v != "" {
+		config.Claude.Federation.WorkspaceID = v
 	}
 
 	// ArgoCD settings
