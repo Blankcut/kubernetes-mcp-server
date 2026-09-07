@@ -72,7 +72,7 @@ func TestFederationTokenSourceExchangesAndCaches(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	src := newFederationTokenSource(FederationConfig{
+	src := newFederationTokenSource(&FederationConfig{
 		IdentityTokenFile: writeIdentityToken(t, "  header.payload.signature\n"),
 		FederationRuleID:  "fdrl_test",
 		OrganizationID:    "org-test",
@@ -119,7 +119,7 @@ func TestFederationTokenSourceRefreshesNearExpiry(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	src := newFederationTokenSource(FederationConfig{
+	src := newFederationTokenSource(&FederationConfig{
 		IdentityTokenFile: writeIdentityToken(t, "jwt"),
 		FederationRuleID:  "fdrl_test",
 		OrganizationID:    "org-test",
@@ -149,7 +149,7 @@ func TestFederationTokenSourceSurfacesExchangeFailure(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	src := newFederationTokenSource(FederationConfig{
+	src := newFederationTokenSource(&FederationConfig{
 		IdentityTokenFile: writeIdentityToken(t, "jwt"),
 		FederationRuleID:  "fdrl_test",
 		OrganizationID:    "org-test",
@@ -162,7 +162,7 @@ func TestFederationTokenSourceSurfacesExchangeFailure(t *testing.T) {
 }
 
 func TestFederationTokenSourceMissingTokenFile(t *testing.T) {
-	src := newFederationTokenSource(FederationConfig{
+	src := newFederationTokenSource(&FederationConfig{
 		IdentityTokenFile: filepath.Join(t.TempDir(), "does-not-exist"),
 		FederationRuleID:  "fdrl_test",
 		OrganizationID:    "org-test",
@@ -174,12 +174,12 @@ func TestFederationTokenSourceMissingTokenFile(t *testing.T) {
 }
 
 func TestNewClientOnlyEnablesFederationWhenConfigured(t *testing.T) {
-	apiKeyOnly := NewClient(ClaudeConfig{APIKey: "sk-ant-test", BaseURL: "https://api.anthropic.com"}, nil)
+	apiKeyOnly := NewClient(&ClaudeConfig{APIKey: "sk-ant-test", BaseURL: "https://api.anthropic.com"}, nil)
 	if apiKeyOnly.federation != nil {
 		t.Error("federation should be nil when only an API key is configured")
 	}
 
-	federated := NewClient(ClaudeConfig{
+	federated := NewClient(&ClaudeConfig{
 		BaseURL: "https://api.anthropic.com",
 		Federation: FederationConfig{
 			IdentityTokenFile: "/var/run/secrets/anthropic.com/token",

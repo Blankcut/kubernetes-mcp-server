@@ -63,7 +63,7 @@ type Usage struct {
 }
 
 // NewClient creates a new Claude API client
-func NewClient(cfg ClaudeConfig, logger *logging.Logger) *Client {
+func NewClient(cfg *ClaudeConfig, logger *logging.Logger) *Client {
 	if logger == nil {
 		logger = logging.NewLogger().Named("claude")
 	}
@@ -83,7 +83,7 @@ func NewClient(cfg ClaudeConfig, logger *logging.Logger) *Client {
 	}
 
 	if cfg.Federation.Enabled() {
-		client.federation = newFederationTokenSource(cfg.Federation, cfg.BaseURL, httpClient)
+		client.federation = newFederationTokenSource(&cfg.Federation, cfg.BaseURL, httpClient)
 		logger.Info("Using Workload Identity Federation for Claude authentication",
 			"federationRuleID", cfg.Federation.FederationRuleID)
 	}
