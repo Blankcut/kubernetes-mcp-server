@@ -98,6 +98,13 @@ func main() {
 		ModelID:     cfg.Claude.ModelID,
 		MaxTokens:   cfg.Claude.MaxTokens,
 		Temperature: cfg.Claude.Temperature,
+		Federation: claude.FederationConfig{
+			IdentityTokenFile: cfg.Claude.Federation.IdentityTokenFile,
+			FederationRuleID:  cfg.Claude.Federation.FederationRuleID,
+			OrganizationID:    cfg.Claude.Federation.OrganizationID,
+			ServiceAccountID:  cfg.Claude.Federation.ServiceAccountID,
+			WorkspaceID:       cfg.Claude.Federation.WorkspaceID,
+		},
 	}
 	claudeClient := claude.NewClient(claudeConfig, logger.Named("claude"))
 

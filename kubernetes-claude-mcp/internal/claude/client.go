@@ -21,6 +21,9 @@ type Client struct {
 	temperature float64
 	httpClient  *http.Client
 	logger      *logging.Logger
+	// federation is non-nil only when Workload Identity Federation is
+	// configured. When nil, requests authenticate with apiKey exactly as before.
+	federation *federationTokenSource
 }
 
 // Message represents a message in the Claude conversation
@@ -65,17 +68,27 @@ func NewClient(cfg ClaudeConfig, logger *logging.Logger) *Client {
 		logger = logging.NewLogger().Named("claude")
 	}
 
-	return &Client{
+	httpClient := &http.Client{
+		Timeout: 120 * time.Second,
+	}
+
+	client := &Client{
 		apiKey:      cfg.APIKey,
 		baseURL:     cfg.BaseURL,
 		modelID:     cfg.ModelID,
 		maxTokens:   cfg.MaxTokens,
 		temperature: cfg.Temperature,
-		httpClient: &http.Client{
-			Timeout: 120 * time.Second,
-		},
-		logger: logger,
+		httpClient:  httpClient,
+		logger:      logger,
 	}
+
+	if cfg.Federation.Enabled() {
+		client.federation = newFederationTokenSource(cfg.Federation, cfg.BaseURL, httpClient)
+		logger.Info("Using Workload Identity Federation for Claude authentication",
+			"federationRuleID", cfg.Federation.FederationRuleID)
+	}
+
+	return client
 }
 
 // ClaudeConfig holds configuration for the Claude API client
@@ -87,6 +100,8 @@ type ClaudeConfig struct {
 	ModelID     string  `yaml:"modelID"`
 	MaxTokens   int     `yaml:"maxTokens"`
 	Temperature float64 `yaml:"temperature"`
+	// Federation is optional. Leave it unset to authenticate with APIKey.
+	Federation FederationConfig `yaml:"federation"`
 }
 
 // Complete sends a completion request to the Claude API
@@ -131,8 +146,20 @@ func (c *Client) Complete(ctx context.Context, messages []Message) (string, erro
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", c.apiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
+
+	// Federated tokens go on Authorization as a bearer credential; a static API
+	// key goes on x-api-key. Never both -- sending an API key alongside a
+	// federated token defeats the point of having no long-lived secret.
+	if c.federation != nil {
+		token, tokenErr := c.federation.Token(ctx)
+		if tokenErr != nil {
+			return "", fmt.Errorf("failed to obtain federated access token: %w", tokenErr)
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
+	} else {
+		req.Header.Set("x-api-key", c.apiKey)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

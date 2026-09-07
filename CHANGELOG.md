@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Optional Workload Identity Federation for Claude authentication. The server can
+  exchange a short-lived OIDC token from your own identity provider for an Anthropic
+  access token instead of holding a long-lived API key. Opt-in and fully backwards
+  compatible: omit the new `claude.federation` block and the existing `apiKey` path
+  is unchanged. Configurable via YAML or the same environment variables the official
+  Anthropic SDKs read.
 - GitHub Actions CI/CD workflows with multi-architecture Docker support (AMD64 + ARM64)
 - golangci-lint configuration for code quality
 - Trivy security scanning in CI/CD pipeline

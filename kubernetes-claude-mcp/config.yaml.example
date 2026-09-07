@@ -56,7 +56,44 @@ gitlab:
 claude:
   # Claude API key from Anthropic
   # Get your key at: https://console.anthropic.com/
+  #
+  # Leave this set for the normal case. It is ignored only when the optional
+  # `federation` block below is fully configured.
   apiKey: "your-claude-api-key-here"
+
+  # OPTIONAL: Workload Identity Federation.
+  #
+  # Instead of a long-lived API key, the server can present a short-lived OIDC
+  # token from an identity provider you already run and exchange it for an
+  # Anthropic access token. Nothing long-lived is stored, so there is no secret
+  # to rotate or leak. Most deployments do not need this -- omit the whole
+  # block and the `apiKey` above is used exactly as before.
+  #
+  # Configure the issuer, a service account and a federation rule in the Claude
+  # Console (Settings -> Workload identity), then fill in the ids below.
+  # Every value can also come from the environment, using the same variable
+  # names the official Anthropic SDKs read:
+  #   ANTHROPIC_IDENTITY_TOKEN_FILE, ANTHROPIC_FEDERATION_RULE_ID,
+  #   ANTHROPIC_ORGANIZATION_ID, ANTHROPIC_SERVICE_ACCOUNT_ID,
+  #   ANTHROPIC_WORKSPACE_ID
+  #
+  # federation:
+  #   # Path the identity provider writes the JWT to. On Kubernetes this is a
+  #   # projected serviceAccountToken volume whose audience MUST be
+  #   # https://api.anthropic.com. On EKS, do NOT reuse the IRSA token at
+  #   # AWS_WEB_IDENTITY_TOKEN_FILE -- it carries aud: sts.amazonaws.com and is
+  #   # rejected by the audience match. Project a second, separate token.
+  #   #
+  #   # Keep expirationSeconds on that volume well below the minted token's
+  #   # lifetime. Identity tokens are single-use, and Kubernetes only rotates
+  #   # the file at ~80% of its lifetime, so a long-lived projection makes every
+  #   # refresh replay a spent token and fail.
+  #   identityTokenFile: "/var/run/secrets/anthropic.com/token"
+  #   federationRuleID: "fdrl_..."
+  #   organizationID: "00000000-0000-0000-0000-000000000000"
+  #   serviceAccountID: "svac_..."
+  #   # Only needed when the rule spans more than one workspace.
+  #   workspaceID: "wrkspc_..."
 
   # Claude API base URL (usually no need to change)
   baseURL: "https://api.anthropic.com"
