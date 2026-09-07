@@ -39,7 +39,7 @@ type FederationConfig struct {
 // Enabled reports whether enough is configured to attempt federation. It
 // deliberately mirrors what the exchange endpoint actually requires, so a
 // half-configured deployment falls back to the API key rather than failing.
-func (f FederationConfig) Enabled() bool {
+func (f *FederationConfig) Enabled() bool {
 	return f.IdentityTokenFile != "" && f.FederationRuleID != "" && f.OrganizationID != ""
 }
 
@@ -64,7 +64,7 @@ const refreshSkew = 120 * time.Second
 // makes every refresh after the first replay a spent jti. Keep
 // expirationSeconds well below the minted token's lifetime.
 type federationTokenSource struct {
-	cfg        FederationConfig
+	cfg        *FederationConfig
 	baseURL    string
 	httpClient *http.Client
 
@@ -73,7 +73,7 @@ type federationTokenSource struct {
 	expiresAt time.Time
 }
 
-func newFederationTokenSource(cfg FederationConfig, baseURL string, httpClient *http.Client) *federationTokenSource {
+func newFederationTokenSource(cfg *FederationConfig, baseURL string, httpClient *http.Client) *federationTokenSource {
 	return &federationTokenSource{cfg: cfg, baseURL: baseURL, httpClient: httpClient}
 }
 

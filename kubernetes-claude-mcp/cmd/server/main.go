@@ -92,7 +92,7 @@ func main() {
 
 	// Initialize Claude client
 	logger.Info("Initializing Claude client")
-	claudeConfig := claude.ClaudeConfig{
+	claudeConfig := &claude.ClaudeConfig{
 		APIKey:      cfg.Claude.APIKey,
 		BaseURL:     cfg.Claude.BaseURL,
 		ModelID:     cfg.Claude.ModelID,
