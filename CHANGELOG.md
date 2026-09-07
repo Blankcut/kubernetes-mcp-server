@@ -55,6 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Raw Kubernetes manifests (k8s/ directory) in favor of Helm chart only
 
 ### Fixed
+- Configuration validation no longer requires `claude.apiKey` when a complete
+  `claude.federation` block is present. Previously a deployment that finished
+  moving to Workload Identity Federation and removed its static key would fail
+  startup validation and crash-loop, despite being correctly configured.
 - Configuration file security (config.yaml.example created with placeholders)
 
 ## [0.1.0] - TBD

@@ -137,3 +137,77 @@ claude:
 		t.Errorf("Expected API key to be overridden to 'env-api-key-12345', got '%s'", cfg.Server.Auth.APIKey)
 	}
 }
+
+// validBase returns a Config that passes Validate, so each case below can
+// change exactly one thing and attribute the result to that change.
+func validBase() *Config {
+	cfg := &Config{}
+	cfg.Server.Address = ":8080"
+	cfg.Claude.APIKey = "sk-ant-test"
+	cfg.Claude.BaseURL = "https://api.anthropic.com"
+	cfg.Claude.ModelID = "claude-sonnet-4.5-20250514"
+	cfg.Claude.MaxTokens = 4096
+	cfg.Claude.Temperature = 0.5
+	return cfg
+}
+
+func fullFederation() ClaudeFederationConfig {
+	return ClaudeFederationConfig{
+		IdentityTokenFile: "/var/run/secrets/anthropic.com/token",
+		FederationRuleID:  "fdrl_test",
+		OrganizationID:    "org-test",
+		ServiceAccountID:  "svac_test",
+	}
+}
+
+// The last step of a move to federation is deleting the static key. Validate
+// has to accept that, or the deployment crash-loops on a config that works.
+func TestValidateAcceptsFederationWithoutAPIKey(t *testing.T) {
+	cfg := validBase()
+	cfg.Claude.APIKey = ""
+	cfg.Claude.Federation = fullFederation()
+
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("federation-only config should validate, got: %v", err)
+	}
+}
+
+func TestValidateStillAcceptsAPIKeyWithoutFederation(t *testing.T) {
+	if err := validBase().Validate(); err != nil {
+		t.Fatalf("api-key-only config should validate, got: %v", err)
+	}
+}
+
+func TestValidateRejectsNeitherCredential(t *testing.T) {
+	cfg := validBase()
+	cfg.Claude.APIKey = ""
+
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("config with neither API key nor federation should fail validation")
+	}
+}
+
+// A half-configured federation block is not a credential. Accepting it would
+// let the server start and then fall back to an empty API key at request time.
+func TestValidateRejectsPartialFederationWithoutAPIKey(t *testing.T) {
+	for _, missing := range []string{"IdentityTokenFile", "FederationRuleID", "OrganizationID"} {
+		t.Run(missing, func(t *testing.T) {
+			cfg := validBase()
+			cfg.Claude.APIKey = ""
+			fed := fullFederation()
+			switch missing {
+			case "IdentityTokenFile":
+				fed.IdentityTokenFile = ""
+			case "FederationRuleID":
+				fed.FederationRuleID = ""
+			case "OrganizationID":
+				fed.OrganizationID = ""
+			}
+			cfg.Claude.Federation = fed
+
+			if err := cfg.Validate(); err == nil {
+				t.Fatalf("federation missing %s should fail validation", missing)
+			}
+		})
+	}
+}
