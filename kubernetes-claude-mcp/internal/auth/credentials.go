@@ -310,6 +310,15 @@ func (p *CredentialProvider) loadClaudeCredentials(ctx context.Context) error {
 		return nil
 	}
 
+	// Workload Identity Federation supplies the credential at request time, so
+	// there is nothing to load here and no static key to find. Returning an
+	// error would crash-loop a deployment that has correctly completed the
+	// move to federation and removed its key.
+	if p.config.Claude.Federation.Enabled() {
+		p.logger.Info("Claude uses Workload Identity Federation; no static credential to load")
+		return nil
+	}
+
 	p.logger.Warn("No Claude API key found")
 	return fmt.Errorf("no Claude API key found")
 }

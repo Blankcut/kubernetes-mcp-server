@@ -55,6 +55,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Raw Kubernetes manifests (k8s/ directory) in favor of Helm chart only
 
 ### Fixed
+- The credential provider no longer fails startup when only
+  `claude.federation` is configured. Fixing `Validate()` alone was not
+  enough: `LoadCredentials` runs earlier and had its own hard requirement
+  for a static key, so a federated deployment still crash-looped before the
+  Claude client was ever constructed.
 - Configuration validation no longer requires `claude.apiKey` when a complete
   `claude.federation` block is present. Previously a deployment that finished
   moving to Workload Identity Federation and removed its static key would fail
