@@ -16,10 +16,10 @@ const currentPath = Astro.url.pathname;
   <nav>
     <ul class="space-y-0.5">
       {sortedDocs.map(doc => {
-        const docPath = `/docs/${doc.slug}`;
+        const docPath = `/docs/${doc.id}`;
         const isActive = currentPath === docPath ||
                          currentPath === `${docPath}/` ||
-                         currentPath === `/${doc.slug}`;
+                         currentPath === `/${doc.id}`;
 
         return (
           <li>

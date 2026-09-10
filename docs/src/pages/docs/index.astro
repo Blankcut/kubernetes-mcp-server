@@ -20,7 +20,7 @@ const sortedDocs = docs.sort((a, b) =>
       <div class="space-y-6">
         {sortedDocs.map(doc => (
           <div class="border border-secondary-300 rounded-lg p-6 bg-secondary-50 hover:bg-secondary-100 transition-colors">
-            <a href={`/docs/${doc.slug}`} class="text-xl md:text-2xl font-semibold text-primary-600 hover:text-primary-700 hover:underline">
+            <a href={`/docs/${doc.id}`} class="text-xl md:text-2xl font-semibold text-primary-600 hover:text-primary-700 hover:underline">
               {doc.data.title}
             </a>
             {doc.data.description && (

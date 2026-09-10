@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Documentation for the Kubernetes Claude MCP Server",
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
@@ -11,22 +14,19 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/mdx": "^1.1.0",
-    "@astrojs/preact": "^3.0.0",
-    "@astrojs/sitemap": "^3.0.0",
-    "@astrojs/tailwind": "^5.0.0",
+    "@astrojs/mdx": "^8.0.1",
+    "@astrojs/preact": "^6.0.5",
+    "@astrojs/sitemap": "^3.7.4",
     "@docsearch/css": "^3.5.1",
     "@docsearch/js": "^3.5.1",
-    "astro": "^3.1.0",
-    "preact": "^10.17.1",
-    "tailwindcss": "^3.3.3",
-    "remark-toc": "^8.0.1",
-    "shiki": "^0.14.3",
-    "rehype-autolink-headings": "^7.0.0"
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.3.2",
+    "preact": "^10.29.8",
+    "tailwindcss": "^4.3.3",
+    "remark-toc": "^9.0.0",
+    "rehype-autolink-headings": "^7.1.0"
   },
   "devDependencies": {
-    "@tailwindcss/typography": "^0.5.10",
-    "autoprefixer": "^10.4.15",
-    "postcss": "^8.4.29"
+    "@tailwindcss/typography": "^0.5.20"
   }
 }
