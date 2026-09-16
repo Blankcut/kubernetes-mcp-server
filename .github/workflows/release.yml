@@ -54,6 +54,9 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
 
+      - name: Set up Depot CLI
+        uses: depot/setup-action@v1
+
       - name: Build and push Docker image
         uses: depot/build-push-action@v1
         with:

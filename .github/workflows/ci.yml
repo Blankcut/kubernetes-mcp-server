@@ -110,6 +110,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Depot CLI
+        uses: depot/setup-action@v1
+
       - name: Build Docker image (test only)
         uses: depot/build-push-action@v1
         with:
