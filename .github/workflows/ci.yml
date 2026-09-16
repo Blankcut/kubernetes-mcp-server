@@ -10,8 +10,13 @@ on:
       - main
       - develop
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GO_VERSION: '1.27'
+  DEPOT_PROJECT_ID: 18zh8qq988
 
 jobs:
   lint:
@@ -95,23 +100,25 @@ jobs:
   docker-build:
     name: Docker Build Test
     runs-on: ubuntu-latest
+    # id-token: write lets the job mint an OIDC token to authenticate against
+    # Depot. contents: read is listed explicitly because declaring a
+    # permissions block drops every scope not named, which would break checkout.
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
       - name: Build Docker image (test only)
-        uses: docker/build-push-action@v6
+        uses: depot/build-push-action@v1
         with:
+          project: ${{ env.DEPOT_PROJECT_ID }}
           context: ./kubernetes-claude-mcp
           file: ./kubernetes-claude-mcp/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: false
           tags: blankcut/kubernetes-mcp-server:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   security:
     name: Security Scan
