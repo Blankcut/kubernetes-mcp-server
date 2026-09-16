@@ -116,6 +116,7 @@ jobs:
       - name: Build Docker image (test only)
         uses: depot/build-push-action@v1
         with:
+          token: ${{ secrets.DEPOT_TOKEN }}
           project: ${{ env.DEPOT_PROJECT_ID }}
           context: ./kubernetes-claude-mcp
           file: ./kubernetes-claude-mcp/Dockerfile
