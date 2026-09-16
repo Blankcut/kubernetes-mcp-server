@@ -1,8 +1,8 @@
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
-import tailwind from '@astrojs/tailwind';
 import preact from '@astrojs/preact';
 import sitemap from '@astrojs/sitemap';
+import tailwindcss from '@tailwindcss/vite';
 import remarkToc from 'remark-toc';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 
@@ -16,12 +16,12 @@ export default defineConfig({
       remarkPlugins: [remarkToc],
       rehypePlugins: [rehypeAutolinkHeadings]
     }),
-    tailwind({
-      config: { applyBaseStyles: false }
-    }),
     preact(),
     sitemap()
   ],
+  vite: {
+    plugins: [tailwindcss()]
+  },
   markdown: {
     syntaxHighlight: 'shiki',
     shikiConfig: {

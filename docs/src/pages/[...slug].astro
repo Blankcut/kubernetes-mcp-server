@@ -1,5 +1,5 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 // Debug: Log what's happening during build
@@ -9,16 +9,16 @@ export async function getStaticPaths() {
   // Attempt to get the collection and log the result
   try {
     const docs = await getCollection('docs');
-    console.log(`Found ${docs.length} docs:`, docs.map(d => d.slug));
+    console.log(`Found ${docs.length} docs:`, docs.map(d => d.id));
     
     // Create routes for both /docs/slug and direct /slug access
     return docs.flatMap(entry => [
       {
-        params: { slug: `docs/${entry.slug}` },
+        params: { slug: `docs/${entry.id}` },
         props: { entry },
       },
       {
-        params: { slug: entry.slug },
+        params: { slug: entry.id },
         props: { entry },
       }
     ]);
@@ -33,9 +33,9 @@ const { slug } = Astro.params;
 const { entry } = Astro.props;
 
 // Render the content
-const { Content } = await entry.render();
+const { Content } = await render(entry);
 
-console.log(`Rendering page for slug: ${slug}, entry: ${entry?.slug}`);
+console.log(`Rendering page for slug: ${slug}, entry: ${entry?.id}`);
 ---
 
 <BaseLayout title={entry.data.title || "Documentation"}>

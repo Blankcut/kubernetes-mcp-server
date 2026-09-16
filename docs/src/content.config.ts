@@ -1,10 +1,8 @@
 import { defineCollection, z } from 'astro:content';
-
-// Debug: Log that we're loading the content config
-console.log("Loading content collection config...");
+import { glob } from 'astro/loaders';
 
 const docsCollection = defineCollection({
-  type: 'content', // Make sure type is specified
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/docs' }),
   schema: z.object({
     title: z.string(),
     description: z.string().optional(),
@@ -19,6 +17,3 @@ const docsCollection = defineCollection({
 export const collections = {
   'docs': docsCollection,
 };
-
-// Debug: Log that we've defined the collections
-console.log("Content collections defined:", Object.keys(collections));
