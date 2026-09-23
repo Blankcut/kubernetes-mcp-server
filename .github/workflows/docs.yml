@@ -62,8 +62,6 @@ jobs:
       contents: read
       packages: write
       security-events: write
-      # allow minting an OIDC token to authenticate against Depot
-      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
