@@ -100,12 +100,11 @@ jobs:
   docker-build:
     name: Docker Build Test
     runs-on: ubuntu-latest
-    # id-token: write lets the job mint an OIDC token to authenticate against
-    # Depot. contents: read is listed explicitly because declaring a
-    # permissions block drops every scope not named, which would break checkout.
+    # Depot authenticates with DEPOT_TOKEN, so this job only needs to read the
+    # repo. contents: read is named explicitly because declaring a permissions
+    # block drops every scope not listed, which would otherwise break checkout.
     permissions:
       contents: read
-      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
