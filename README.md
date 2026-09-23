@@ -1,5 +1,11 @@
 
 
+<p align="center">
+  <a href="https://docs.blankcut.com/kubernetes-mcp-server/">
+    <img src="assets/blankcut-logo.png" alt="Blank Cut" width="320">
+  </a>
+</p>
+
 
 
 # Claude Kubernetes MCP Server
