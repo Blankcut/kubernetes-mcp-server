@@ -55,6 +55,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Raw Kubernetes manifests (k8s/ directory) in favor of Helm chart only
 
 ### Fixed
+- `GET /api/v1/argocd/applications` no longer answers an ArgoCD RBAC denial
+  with `200` and an empty list. ArgoCD filters out applications the caller
+  may not `get`, so on 2026-09-28 a token that had lost its grant looked
+  exactly like a cluster with no applications for ~16 hours, while every
+  health check stayed green. The server now probes
+  `/api/v1/account/can-i/applications/get/*/*` at startup and every 60s,
+  logs at ERROR when the token is denied or rejected, reports the result as
+  `components.argocd` in `/api/v1/health` and `/api/v1/health/ready`, and
+  returns `503` for an empty list while the probe says the token was refused.
+  Readiness is deliberately not failed by this; its status reads `degraded`.
 - The credential provider no longer fails startup when only
   `claude.federation` is configured. Fixing `Validate()` alone was not
   enough: `LoadCredentials` runs earlier and had its own hard requirement
