@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/auth"
@@ -25,6 +26,10 @@ type Client struct {
 	credentialProvider *auth.CredentialProvider
 	config             *config.ArgoCDConfig
 	logger             *logging.Logger
+
+	// authz caches the applications:get probe; see authz.go.
+	authzMu sync.RWMutex
+	authz   AuthzStatus
 }
 
 // NewClient creates a new ArgoCD API client
@@ -49,6 +54,7 @@ func NewClient(cfg *config.ArgoCDConfig, credProvider *auth.CredentialProvider, 
 		credentialProvider: credProvider,
 		config:             cfg,
 		logger:             logger,
+		authz:              AuthzStatus{State: AuthzUnknown},
 	}
 }
 

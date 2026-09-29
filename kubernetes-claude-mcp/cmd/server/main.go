@@ -79,6 +79,14 @@ func main() {
 		logger.Info("ArgoCD connectivity confirmed")
 	}
 
+	// Connectivity does not prove the token can read anything: ArgoCD hides
+	// applications the caller may not get, so a lost RBAC grant looks like an
+	// empty cluster. Probe applications:get now and on an interval; the result
+	// feeds the health endpoints and the applications list handler.
+	if cfg.ArgoCD.URL != "" {
+		go argoClient.WatchApplicationsAccess(ctx, argocd.DefaultAuthzRefreshInterval)
+	}
+
 	// Initialize GitLab client
 	logger.Info("Initializing GitLab client")
 	gitlabClient := gitlab.NewClient(&cfg.GitLab, credProvider, logger.Named("gitlab"))

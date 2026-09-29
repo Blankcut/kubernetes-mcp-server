@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/argocd"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
 	"github.com/gorilla/mux"
 )
@@ -86,8 +88,9 @@ func (s *Server) handleMergeRequestQuery(w http.ResponseWriter, r *http.Request)
 // handleHealth handles health check requests
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	type healthResponse struct {
-		Status   string            `json:"status"`
-		Services map[string]string `json:"services"`
+		Status     string                 `json:"status"`
+		Services   map[string]string      `json:"services"`
+		Components map[string]interface{} `json:"components"`
 	}
 
 	// Check each service
@@ -108,11 +111,17 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		services["kubernetes"] = "available"
 	}
 
-	// Check ArgoCD connectivity
-	if err := s.argoClient.CheckConnectivity(ctx); err != nil {
+	// Check ArgoCD connectivity. Connectivity alone said "available" all
+	// through the 2026-09-28 RBAC wipe; the cached authorization probe is what
+	// tells a reachable ArgoCD from a usable one.
+	argoAccess := s.argoClient.ApplicationsAccess()
+	switch err := s.argoClient.CheckConnectivity(ctx); {
+	case err != nil:
 		services["argocd"] = "unavailable"
 		s.logger.Warn("ArgoCD health check failed", "error", err)
-	} else {
+	case argoAccess.Refused():
+		services["argocd"] = "unauthorized"
+	default:
 		services["argocd"] = "available"
 	}
 
@@ -130,13 +139,14 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	// Determine overall status
 	status := "ok"
-	if services["kubernetes"] != "available" {
+	if services["kubernetes"] != "available" || argoAccess.Refused() {
 		status = "degraded"
 	}
 
 	response := healthResponse{
-		Status:   status,
-		Services: services,
+		Status:     status,
+		Services:   services,
+		Components: map[string]interface{}{"argocd": newArgoCDHealth(argoAccess)},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -167,9 +177,10 @@ func (s *Server) handleLiveness(w http.ResponseWriter, r *http.Request) {
 // This endpoint checks if the application is ready to serve traffic
 func (s *Server) handleReadiness(w http.ResponseWriter, r *http.Request) {
 	type readinessResponse struct {
-		Status string          `json:"status"`
-		Ready  bool            `json:"ready"`
-		Checks map[string]bool `json:"checks"`
+		Status     string                 `json:"status"`
+		Ready      bool                   `json:"ready"`
+		Checks     map[string]bool        `json:"checks"`
+		Components map[string]interface{} `json:"components"`
 	}
 
 	ctx := r.Context()
@@ -177,13 +188,23 @@ func (s *Server) handleReadiness(w http.ResponseWriter, r *http.Request) {
 		"kubernetes": false,
 	}
 
+	// ArgoCD is reported under components, never under checks: it must not
+	// gate readiness. A failing readiness probe pulls the pod out of its
+	// Service and takes every Kubernetes and GitLab tool down with the ArgoCD
+	// ones, so a denied or unreachable ArgoCD degrades one integration instead
+	// of the whole server. The value is cached by the argocd client's watch
+	// loop, so this adds no ArgoCD call to the probe.
+	argoAccess := s.argoClient.ApplicationsAccess()
+	components := map[string]interface{}{"argocd": newArgoCDHealth(argoAccess)}
+
 	// Check Kubernetes connectivity - this is critical for readiness
 	if err := s.k8sClient.CheckConnectivity(ctx); err != nil {
 		s.logger.Debug("Kubernetes readiness check failed", "error", err)
 		response := readinessResponse{
-			Status: "not ready",
-			Ready:  false,
-			Checks: checks,
+			Status:     "not ready",
+			Ready:      false,
+			Checks:     checks,
+			Components: components,
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -193,16 +214,57 @@ func (s *Server) handleReadiness(w http.ResponseWriter, r *http.Request) {
 
 	checks["kubernetes"] = true
 
-	// If Kubernetes is available, we're ready
+	// If Kubernetes is available, we're ready. A definite ArgoCD refusal is a
+	// misconfiguration worth surfacing, so it downgrades the status text while
+	// the probe itself still passes.
+	status := "ready"
+	if argoAccess.Refused() {
+		status = "degraded"
+	}
+
 	response := readinessResponse{
-		Status: "ready",
-		Ready:  true,
-		Checks: checks,
+		Status:     status,
+		Ready:      true,
+		Checks:     checks,
+		Components: components,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+// argoCDHealth is the argocd entry under "components" in the health responses.
+// Authorized is a pointer so "no answer yet" (null) stays distinguishable from a
+// definite "no" (false).
+type argoCDHealth struct {
+	Status     argocd.AuthzState `json:"status"`
+	Reachable  bool              `json:"reachable"`
+	Authorized *bool             `json:"authorized"`
+	CheckedAt  *time.Time        `json:"checkedAt,omitempty"`
+	Message    string            `json:"message,omitempty"`
+}
+
+func newArgoCDHealth(access argocd.AuthzStatus) argoCDHealth {
+	health := argoCDHealth{
+		Status:    access.State,
+		Reachable: access.Reachable(),
+	}
+	if access.Reachable() {
+		authorized := access.State == argocd.AuthzAuthorized
+		health.Authorized = &authorized
+	}
+	if !access.CheckedAt.IsZero() {
+		checkedAt := access.CheckedAt
+		health.CheckedAt = &checkedAt
+	}
+	// The health endpoints are unauthenticated, so only the fixed refusal
+	// reasons are echoed here. Transport errors can carry internal URLs and
+	// response bodies; those stay in the logs.
+	if access.Refused() && access.Err != nil {
+		health.Message = access.Err.Error()
+	}
+	return health
 }
 
 // handleMCPRequest handles generic MCP requests
@@ -511,6 +573,21 @@ func (s *Server) handleListArgoApplications(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		s.respondWithError(w, http.StatusInternalServerError, "Failed to list ArgoCD applications", err)
 		return
+	}
+
+	// ArgoCD filters the list down to the applications the caller may get, so a
+	// total RBAC denial arrives as a successful, empty list, and a rejected
+	// token decodes to one too. Passed through, that reads as "there are no
+	// applications": on 2026-09-28 it blanked Meerkat's deployment dashboard for
+	// every app for ~16 hours. When the cached probe says ArgoCD refused this
+	// token, say so instead. A non-empty list is always returned as-is, and an
+	// unknown or unavailable probe keeps the old behavior.
+	if len(applications) == 0 {
+		if access := s.argoClient.ApplicationsAccess(); access.Refused() {
+			s.respondWithError(w, http.StatusServiceUnavailable,
+				"ArgoCD denied applications:get for this server's token", access.Err)
+			return
+		}
 	}
 
 	s.respondWithJSON(w, http.StatusOK, map[string]interface{}{"applications": applications})

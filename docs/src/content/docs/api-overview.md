@@ -45,11 +45,37 @@ Check the health status of the server and its connected services.
     "argocd": "available",
     "gitlab": "available",
     "claude": "assumed available"
+  },
+  "components": {
+    "argocd": {
+      "status": "authorized",
+      "reachable": true,
+      "authorized": true,
+      "checkedAt": "2026-09-28T12:00:00Z"
+    }
   }
 }
 ```
 
-The `status` field will be `ok` if all required services are available, or `degraded` if some services are unavailable.
+The `status` field will be `ok` if all required services are available, or `degraded` if some services are unavailable or ArgoCD refuses the server's token.
+
+`services.argocd` is `unauthorized` when ArgoCD is reachable but refuses the token. Reachability alone is not enough: ArgoCD hides applications the caller may not `get`, so a token that loses its RBAC grant still connects and simply sees nothing.
+
+`components.argocd` comes from a probe of ArgoCD's `GET /api/v1/account/can-i/applications/get/*/*`, run at startup and every 60 seconds:
+
+| `status` | Meaning | `reachable` | `authorized` |
+|---|---|---|---|
+| `authorized` | The token may get applications in every project | `true` | `true` |
+| `denied` | The token authenticates but lacks `applications:get`; check `argocd-rbac-cm` | `true` | `false` |
+| `unauthenticated` | ArgoCD rejected the token (HTTP 401) | `true` | `false` |
+| `unavailable` | ArgoCD could not be reached or gave no usable answer | `false` | `null` |
+| `unknown` | No probe has completed yet, or ArgoCD is not configured | `false` | `null` |
+
+For `denied` and `unauthenticated`, a `message` field names the fix.
+
+### GET /api/v1/health/ready
+
+Kubernetes readiness probe. Returns `503` only when the Kubernetes API is unreachable. The same `components.argocd` object is included, but ArgoCD never fails readiness: failing it would take the pod out of service and every non-ArgoCD tool with it. When ArgoCD refuses the token, readiness still returns `200` with `"ready": true` and `"status": "degraded"`.
 
 ## Kubernetes API
 
@@ -161,6 +187,8 @@ Get events related to a specific resource.
 ### GET /api/v1/argocd/applications
 
 List all ArgoCD applications.
+
+If ArgoCD returns no applications while the authorization probe (see [Health Check](#health-check)) says it refused the server's token, this endpoint returns `503` instead of an empty list, because the empty list would only reflect the denial. A non-empty list is always returned as-is.
 
 **Response:**
 
@@ -380,6 +408,7 @@ All API endpoints return standard HTTP status codes:
 - `401 Unauthorized`: Missing or invalid API key
 - `404 Not Found`: Resource not found
 - `500 Internal Server Error`: Server error
+- `503 Service Unavailable`: A dependency refused the request (for example, ArgoCD denied the server's token)
 
 Error responses include a JSON body with details:
 
