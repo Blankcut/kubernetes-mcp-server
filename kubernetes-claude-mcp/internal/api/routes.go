@@ -9,6 +9,7 @@ import (
 
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/argocd"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
+	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/upstream"
 	"github.com/gorilla/mux"
 )
 
@@ -571,21 +572,21 @@ func (s *Server) handleGetEvents(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleListArgoApplications(w http.ResponseWriter, r *http.Request) {
 	applications, err := s.argoClient.ListApplications(r.Context())
 	if err != nil {
-		s.respondWithError(w, http.StatusInternalServerError, "Failed to list ArgoCD applications", err)
+		s.respondWithArgoCDError(w, "Failed to list ArgoCD applications", err)
 		return
 	}
 
 	// ArgoCD filters the list down to the applications the caller may get, so a
-	// total RBAC denial arrives as a successful, empty list, and a rejected
-	// token decodes to one too. Passed through, that reads as "there are no
-	// applications": on 2026-09-28 it blanked Meerkat's deployment dashboard for
-	// every app for ~16 hours. When the cached probe says ArgoCD refused this
-	// token, say so instead. A non-empty list is always returned as-is, and an
-	// unknown or unavailable probe keeps the old behavior.
+	// total RBAC denial arrives as a successful, empty list. Passed through,
+	// that reads as "there are no applications": on 2026-09-28 it blanked
+	// Meerkat's deployment dashboard for every app for ~16 hours. When the
+	// cached probe says ArgoCD refused this token, say so instead. A non-empty
+	// list is always returned as-is, and an unknown or unavailable probe keeps
+	// the old behavior. (A rejected token is a 401, which ListApplications
+	// reports as an error; respondWithArgoCDError answers it the same way.)
 	if len(applications) == 0 {
 		if access := s.argoClient.ApplicationsAccess(); access.Refused() {
-			s.respondWithError(w, http.StatusServiceUnavailable,
-				"ArgoCD denied applications:get for this server's token", access.Err)
+			s.respondWithError(w, http.StatusServiceUnavailable, argoCDRefusedMessage, access.Err)
 			return
 		}
 	}
@@ -600,11 +601,27 @@ func (s *Server) handleGetArgoApplication(w http.ResponseWriter, r *http.Request
 
 	application, err := s.argoClient.GetApplication(r.Context(), name)
 	if err != nil {
-		s.respondWithError(w, http.StatusInternalServerError, "Failed to get ArgoCD application", err)
+		s.respondWithArgoCDError(w, "Failed to get ArgoCD application", err)
 		return
 	}
 
 	s.respondWithJSON(w, http.StatusOK, application)
+}
+
+// argoCDRefusedMessage is the error for every response that reports ArgoCD
+// refusing this server's token, whether the probe or the call itself said so.
+const argoCDRefusedMessage = "ArgoCD denied applications:get for this server's token"
+
+// respondWithArgoCDError answers a failed ArgoCD call. A 401 means ArgoCD
+// rejected this server's token: the refusal the authorization probe reports
+// as unauthenticated, so it gets the same 503 and fixed remediation text as
+// the probe path rather than a generic 500. Everything else is a 500.
+func (s *Server) respondWithArgoCDError(w http.ResponseWriter, message string, err error) {
+	if upstream.StatusCode(err) == http.StatusUnauthorized {
+		s.respondWithError(w, http.StatusServiceUnavailable, argoCDRefusedMessage, argocd.ErrTokenRejected)
+		return
+	}
+	s.respondWithError(w, http.StatusInternalServerError, message, err)
 }
 
 // handleListGitLabProjects handles requests to list GitLab projects

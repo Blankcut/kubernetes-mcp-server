@@ -55,6 +55,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Raw Kubernetes manifests (k8s/ directory) in favor of Helm chart only
 
 ### Fixed
+- Log key/value pairs are structured fields again. `Debug`, `Info`, `Warn`,
+  `Error` and `Fatal` on the project logger ran their arguments through
+  `fmt.Sprint`, so every call site's pairs were glued onto the message
+  (`"msg":"HTTP requestmethodGETpath/api/v1/argocd/applicationsstatus200"`).
+  Fixed once in `pkg/logging`; no call sites changed.
+- The ArgoCD client treats a `401` as an error. It used to hand 401 responses
+  back as successes, so a revoked or expired token made list and get calls
+  decode the error body into empty results, and the refresh-on-401 path could
+  never run. Every status outside 2xx from ArgoCD and GitLab is now a typed
+  error carrying the status code. With username/password credentials a 401
+  creates a new session and retries the request once. A 401 from
+  `GET /api/v1/argocd/applications` or `/argocd/applications/{name}` answers
+  `503` with the same message as the authorization probe, even before the
+  first probe has run; the single-application endpoint used to answer `200`
+  with an empty application.
+- The ArgoCD and GitLab clients no longer retry permanent failures. Every
+  error, including 401, 403 and 404, was retried with a 1s+2s backoff, adding
+  three seconds to an answer that could not change. Only transport errors,
+  `429` and `5xx` are retried now, and transport errors and `5xx` only for
+  idempotent methods, so a retried POST cannot create a merge request comment
+  twice. A retried request re-sends its full body (it used to send an empty
+  one), and cancelling the context ends a backoff wait immediately.
 - `GET /api/v1/argocd/applications` no longer answers an ArgoCD RBAC denial
   with `200` and an empty list. ArgoCD filters out applications the caller
   may not `get`, so on 2026-09-28 a token that had lost its grant looked

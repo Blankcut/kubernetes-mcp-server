@@ -17,6 +17,7 @@ import (
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/k8s"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/config"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
+	"github.com/gorilla/mux"
 )
 
 // fakeUpstream stands in for the Kubernetes, ArgoCD and GitLab APIs at once.
@@ -24,6 +25,7 @@ type fakeUpstream struct {
 	k8sDown bool
 	canI    http.HandlerFunc // /api/v1/account/can-i/...
 	list    http.HandlerFunc // /api/v1/applications
+	get     http.HandlerFunc // /api/v1/applications/{name}
 }
 
 func (f *fakeUpstream) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +44,8 @@ func (f *fakeUpstream) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		f.canI(w, r)
 	case r.URL.Path == "/api/v1/applications" && f.list != nil:
 		f.list(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/v1/applications/") && f.get != nil:
+		f.get(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -160,6 +164,16 @@ func TestListArgoApplicationsWhenArgoCDRefusesTheToken(t *testing.T) {
 			wantDetails: "401",
 		},
 		{
+			// The client now reports a 401 as an error instead of decoding it
+			// into an empty list, so it needs no probe result to be caught.
+			name:        "token rejected before the first probe",
+			canI:        tokenRejected,
+			list:        tokenRejected,
+			probe:       false,
+			wantCode:    http.StatusServiceUnavailable,
+			wantDetails: "401",
+		},
+		{
 			name:     "empty and authorized",
 			canI:     canIYes,
 			list:     emptyList,
@@ -227,6 +241,61 @@ func TestListArgoApplicationsWhenArgoCDRefusesTheToken(t *testing.T) {
 			}
 			if len(body.Applications) != tt.wantApps {
 				t.Errorf("got %d applications, want %d", len(body.Applications), tt.wantApps)
+			}
+		})
+	}
+}
+
+// A rejected token used to come back from GET /argocd/applications/{name} as
+// 200 and an application with every field empty.
+func TestGetArgoApplicationErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		get         http.HandlerFunc
+		wantCode    int
+		wantError   string
+		wantDetails string
+	}{
+		{
+			name:        "token rejected",
+			get:         tokenRejected,
+			wantCode:    http.StatusServiceUnavailable,
+			wantError:   "ArgoCD denied applications:get for this server's token",
+			wantDetails: "401",
+		},
+		{
+			name:        "not found",
+			get:         reply(http.StatusNotFound, `{"error":"applications.argoproj.io \"echo\" not found","code":5}`),
+			wantCode:    http.StatusInternalServerError,
+			wantError:   "Failed to get ArgoCD application",
+			wantDetails: "status 404",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := newTestServer(t, &fakeUpstream{get: tt.get}, false)
+
+			rec := httptest.NewRecorder()
+			req := mux.SetURLVars(httptest.NewRequest(http.MethodGet, "/api/v1/argocd/applications/echo", http.NoBody),
+				map[string]string{"name": "echo"})
+			s.handleGetArgoApplication(rec, req)
+
+			if rec.Code != tt.wantCode {
+				t.Fatalf("status = %d, want %d; body %s", rec.Code, tt.wantCode, rec.Body)
+			}
+			var body struct {
+				Error   string `json:"error"`
+				Details string `json:"details"`
+			}
+			if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+				t.Fatalf("decode error body: %v", err)
+			}
+			if body.Error != tt.wantError {
+				t.Errorf("error = %q, want %q", body.Error, tt.wantError)
+			}
+			if !strings.Contains(body.Details, tt.wantDetails) {
+				t.Errorf("details = %q, want it to mention %q", body.Details, tt.wantDetails)
 			}
 		})
 	}

@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/auth"
+	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/upstream"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/config"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
 )
@@ -23,6 +25,7 @@ type Client struct {
 	credentialProvider *auth.CredentialProvider
 	config             *config.GitLabConfig
 	logger             *logging.Logger
+	backoff            upstream.Backoff
 }
 
 // NewClient creates a new GitLab API client
@@ -39,6 +42,7 @@ func NewClient(cfg *config.GitLabConfig, credProvider *auth.CredentialProvider, 
 		credentialProvider: credProvider,
 		config:             cfg,
 		logger:             logger,
+		backoff:            upstream.DefaultBackoff,
 	}
 }
 
@@ -66,67 +70,31 @@ func (c *Client) CheckConnectivity(ctx context.Context) error {
 	return nil
 }
 
-// doRequest performs an HTTP request to the GitLab API with authentication and retry logic
+// doRequest performs an HTTP request to the GitLab API with authentication and
+// retry logic. Any status outside 2xx is returned as an *upstream.StatusError,
+// and only failures upstream.Retryable accepts are retried.
 func (c *Client) doRequest(ctx context.Context, method, endpoint string, body io.Reader) (*http.Response, error) {
-	const maxRetries = 3
-	const baseDelay = 1 * time.Second
-
-	var lastErr error
-	var resp *http.Response
-
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		// Try the request
-		resp, lastErr = c.attemptRequest(ctx, method, endpoint, body)
-
-		// If successful, return immediately
-		if lastErr == nil {
-			return resp, nil
-		}
-
-		// For errors, check if we should retry
-		if attempt < maxRetries-1 && c.shouldRetry(lastErr, resp) {
-			delay := time.Duration(1<<uint(attempt)) * baseDelay // Exponential backoff
-			c.logger.Debug("Retrying GitLab request", "attempt", attempt+1, "delay", delay, "error", lastErr)
-
-			select {
-			case <-time.After(delay):
-				continue
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
-		}
-
-		// If this was the last attempt or we shouldn't retry, break
-		break
-	}
-
-	return resp, lastErr
-}
-
-// shouldRetry determines if a request should be retried based on the error and response
-func (c *Client) shouldRetry(err error, resp *http.Response) bool {
-	// Retry on network errors
-	if err != nil && resp == nil {
-		return true
-	}
-
-	// Retry on specific HTTP status codes
-	if resp != nil {
-		switch resp.StatusCode {
-		case http.StatusTooManyRequests, // 429
-			http.StatusInternalServerError, // 500
-			http.StatusBadGateway,          // 502
-			http.StatusServiceUnavailable,  // 503
-			http.StatusGatewayTimeout:      // 504
-			return true
+	// A reader is spent by the first attempt; buffer it so that a retry sends
+	// the same payload rather than an empty one.
+	var payload []byte
+	if body != nil {
+		var err error
+		if payload, err = io.ReadAll(body); err != nil {
+			return nil, fmt.Errorf("failed to read request body: %w", err)
 		}
 	}
 
-	return false
+	return c.backoff.Do(ctx, method,
+		func() (*http.Response, error) {
+			return c.attemptRequest(ctx, method, endpoint, payload)
+		},
+		func(attempt int, delay time.Duration, err error) {
+			c.logger.Debug("Retrying GitLab request", "attempt", attempt, "delay", delay, "error", err)
+		})
 }
 
 // attemptRequest makes a single request attempt
-func (c *Client) attemptRequest(ctx context.Context, method, endpoint string, body io.Reader) (*http.Response, error) {
+func (c *Client) attemptRequest(ctx context.Context, method, endpoint string, payload []byte) (*http.Response, error) {
 	u, err := url.Parse(c.baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid GitLab URL: %w", err)
@@ -152,6 +120,11 @@ func (c *Client) attemptRequest(ctx context.Context, method, endpoint string, bo
 		u.RawQuery = endpointURL.RawQuery
 	}
 
+	var body io.Reader
+	if payload != nil {
+		body = bytes.NewReader(payload)
+	}
+
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -167,16 +140,11 @@ func (c *Client) attemptRequest(ctx context.Context, method, endpoint string, bo
 	c.logger.Debug("Sending request to GitLab API", "method", method, "url", u.String())
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
+		return nil, &upstream.TransportError{Err: err}
 	}
 
-	if resp.StatusCode >= 400 {
-		defer func() { _ = resp.Body.Close() }()
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("GitLab API error (status %d): failed to read response body: %w", resp.StatusCode, err)
-		}
-		return nil, fmt.Errorf("GitLab API error (status %d): %s", resp.StatusCode, string(body))
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil, upstream.NewStatusError("GitLab", resp)
 	}
 
 	return resp, nil

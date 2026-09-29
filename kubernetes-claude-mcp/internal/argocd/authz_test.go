@@ -164,8 +164,8 @@ func TestCheckApplicationsAccessStates(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			client := newTestClient(t, tt.handler)
 
-			// doRequest retries error statuses with a 1s+2s backoff; the
-			// timeout keeps that out of the test without changing the answer.
+			// Neither 401 nor 403 is retried. The timeout keeps a regression
+			// to retrying them from adding a 1s+2s backoff to the test.
 			ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 			defer cancel()
 

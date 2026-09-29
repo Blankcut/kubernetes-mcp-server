@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/upstream"
 )
 
 // DefaultAuthzRefreshInterval is how often WatchApplicationsAccess re-checks
@@ -92,7 +94,13 @@ func (c *Client) CheckApplicationsAccess(ctx context.Context) AuthzStatus {
 	status := AuthzStatus{CheckedAt: time.Now()}
 
 	resp, err := c.doRequest(ctx, http.MethodGet, applicationsGetProbeEndpoint, nil)
-	if err != nil {
+	switch {
+	case upstream.StatusCode(err) == http.StatusUnauthorized:
+		// doRequest reports every non-2xx status as an error, but a 401 is
+		// still ArgoCD's answer: it rejected the token itself.
+		status.State, status.Err = AuthzUnauthenticated, ErrTokenRejected
+		return status
+	case err != nil:
 		status.State, status.Err = AuthzUnavailable, err
 		return status
 	}
@@ -109,7 +117,6 @@ func parseCanIResponse(statusCode int, body io.Reader) (AuthzState, error) {
 	switch statusCode {
 	case http.StatusOK:
 	case http.StatusUnauthorized:
-		// attemptRequest hands 401s back as responses, not errors.
 		return AuthzUnauthenticated, ErrTokenRejected
 	default:
 		return AuthzUnavailable, fmt.Errorf("unexpected status %d from ArgoCD can-i", statusCode)
@@ -183,9 +190,7 @@ func (c *Client) WatchApplicationsAccess(ctx context.Context, interval time.Dura
 	}
 }
 
-// logAuthzTransition uses the sugared *w methods: the plain Info/Warn/Error
-// run their arguments through fmt.Sprint, which glues the key/value pairs onto
-// the message instead of emitting them as fields.
+// logAuthzTransition logs a change in the probe's answer.
 func (c *Client) logAuthzTransition(previous AuthzState, status AuthzStatus) {
 	switch status.State {
 	case AuthzAuthorized:
