@@ -55,6 +55,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Raw Kubernetes manifests (k8s/ directory) in favor of Helm chart only
 
 ### Fixed
+- ArgoCD application logs (`GetApplicationLogs`) never received the `container`
+  parameter: the request builder joined the query string into the URL path, where it
+  was escaped as `%3F`. Query strings are now sent as queries for every ArgoCD call.
+- `GetCredentials` deadlocked (and could panic with a double `RUnlock`) once ArgoCD
+  credentials passed their expiry -- 24h after the first session for username/password
+  configurations. Token-only deployments never set an expiry and were unaffected.
 - Log key/value pairs are structured fields again. `Debug`, `Info`, `Warn`,
   `Error` and `Fatal` on the project logger ran their arguments through
   `fmt.Sprint`, so every call site's pairs were glued onto the message

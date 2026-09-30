@@ -90,34 +90,36 @@ func (p *CredentialProvider) LoadCredentials(ctx context.Context) error {
 	return nil
 }
 
-// GetCredentials returns credentials for the specified service
+// GetCredentials returns credentials for the specified service, refreshing
+// them first if they have expired.
+//
+// No lock is held across the refresh. RefreshCredentials takes the write lock
+// itself, and sync.RWMutex is not reentrant: the previous version held the
+// write lock while calling it (a deadlock), and also released its read lock
+// twice -- once explicitly, once in a defer (a "sync: RUnlock of unlocked
+// RWMutex" panic). Both fired together the first time an ArgoCD token set by
+// UpdateArgoToken passed its 24h ExpiresAt.
 func (p *CredentialProvider) GetCredentials(serviceType ServiceType) (*Credentials, error) {
 	p.mu.RLock()
-	defer p.mu.RUnlock()
-
 	creds, ok := p.credentials[serviceType]
+	expired := ok && creds.IsExpired()
+	p.mu.RUnlock()
+
 	if !ok {
 		return nil, fmt.Errorf("credentials not found for service: %s", serviceType)
 	}
-
-	// Check if credentials are expired and need refresh
-	if creds.IsExpired() {
-		p.mu.RUnlock() // Release read lock
-
-		// Acquire write lock for refresh
-		p.mu.Lock()
-		defer p.mu.Unlock()
-
-		// Check again in case another goroutine refreshed while we were waiting
-		if creds.IsExpired() {
-			p.logger.Info("Refreshing expired credentials", "serviceType", serviceType)
-			if err := p.RefreshCredentials(context.Background(), serviceType); err != nil {
-				return nil, fmt.Errorf("failed to refresh expired credentials: %w", err)
-			}
-			creds = p.credentials[serviceType]
-		}
+	if !expired {
+		return creds, nil
 	}
 
+	p.logger.Info("Refreshing expired credentials", "serviceType", serviceType)
+	if err := p.RefreshCredentials(context.Background(), serviceType); err != nil {
+		return nil, fmt.Errorf("failed to refresh expired credentials: %w", err)
+	}
+
+	p.mu.RLock()
+	creds = p.credentials[serviceType]
+	p.mu.RUnlock()
 	return creds, nil
 }
 

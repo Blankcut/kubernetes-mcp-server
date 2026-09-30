@@ -243,3 +243,29 @@ func TestRetryBackoffStopsWhenContextEnds(t *testing.T) {
 		t.Errorf("ArgoCD received %d requests, want 1", n)
 	}
 }
+
+// The bug: attemptRequest ran the whole endpoint, query string included,
+// through path.Join, so "?container=app" was escaped into the path as
+// "%3Fcontainer=app" and ArgoCD never saw the container parameter.
+func TestQueryStringIsSentAsAQueryNotEscapedIntoThePath(t *testing.T) {
+	var gotPath, gotContainer, gotRaw string
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath, gotContainer, gotRaw = r.URL.Path, r.URL.Query().Get("container"), r.URL.RawQuery
+		_, _ = w.Write([]byte("line one\nline two\n"))
+	}))
+	client.backoff = fastBackoff
+
+	logs, err := client.GetApplicationLogs(context.Background(), "echo", "echo-api-5d9c", "api server")
+	if err != nil {
+		t.Fatalf("GetApplicationLogs: %v", err)
+	}
+	if gotPath != "/api/v1/applications/echo/pods/echo-api-5d9c/logs" {
+		t.Errorf("path = %q", gotPath)
+	}
+	if gotContainer != "api server" {
+		t.Errorf("container query = %q (raw %q)", gotContainer, gotRaw)
+	}
+	if len(logs) != 2 {
+		t.Errorf("logs = %v", logs)
+	}
+}

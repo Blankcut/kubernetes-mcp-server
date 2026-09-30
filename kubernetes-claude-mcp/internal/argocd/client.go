@@ -144,7 +144,15 @@ func (c *Client) attemptRequest(ctx context.Context, method, endpoint string, pa
 	if err != nil {
 		return nil, fmt.Errorf("invalid ArgoCD URL: %w", err)
 	}
-	u.Path = path.Join(u.Path, endpoint)
+	// Split the endpoint before joining: path.Join works on the path alone, so
+	// a query string passed through it ends up escaped into the path as %3F.
+	// That silently broke GetApplicationLogs (".../logs?container=x").
+	ref, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ArgoCD endpoint %q: %w", endpoint, err)
+	}
+	u.Path = path.Join(u.Path, ref.Path)
+	u.RawQuery = ref.RawQuery
 
 	var body io.Reader
 	if payload != nil {
