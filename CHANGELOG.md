@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Namespace analysis now checks scheduled work. A CronJob whose latest run did not
+  succeed is reported as a `CronJobFailing` issue with the end of its last failed run's
+  pod log (or why that log is gone), and both reach the Claude prompt. A failing CronJob
+  otherwise leaves every Deployment and Pod healthy, and its warning event expires
+  within the hour, so the analysis called the namespace healthy.
+- `GET /api/v1/namespaces/{namespace}/analysis?narrative=false` returns the deterministic
+  findings without the Claude write-up, in seconds, for callers on a short deadline. When
+  Claude is unavailable the full analysis now degrades to the same findings instead of
+  failing with a 500.
 - Optional Workload Identity Federation for Claude authentication. The server can
   exchange a short-lived OIDC token from your own identity provider for an Anthropic
   access token instead of holding a long-lived API key. Opt-in and fully backwards

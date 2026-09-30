@@ -78,7 +78,13 @@ func (s *Server) handleNamespaceAnalysis(w http.ResponseWriter, r *http.Request)
 	s.logger.Info("Handling namespace analysis request", "namespace", namespace)
 
 	// Get namespace analysis from the MCP protocol handler
-	analysis, err := s.mcpHandler.AnalyzeNamespace(r.Context(), namespace)
+	// ?narrative=false skips the Claude write-up and returns the deterministic
+	// findings alone, in seconds -- for callers on a short deadline.
+	analyze := s.mcpHandler.AnalyzeNamespace
+	if r.URL.Query().Get("narrative") == "false" {
+		analyze = s.mcpHandler.AnalyzeNamespaceFindings
+	}
+	analysis, err := analyze(r.Context(), namespace)
 	if err != nil {
 		s.respondWithError(w, http.StatusInternalServerError, "Failed to analyze namespace", err)
 		return

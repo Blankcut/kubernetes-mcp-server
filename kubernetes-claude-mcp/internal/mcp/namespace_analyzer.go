@@ -23,6 +23,18 @@ type NamespaceAnalysisResult struct {
 
 // AnalyzeNamespace analyzes all resources in a namespace using Claude
 func (h *ProtocolHandler) AnalyzeNamespace(ctx context.Context, namespace string) (*models.NamespaceAnalysisResult, error) {
+	return h.analyzeNamespace(ctx, namespace, true)
+}
+
+// AnalyzeNamespaceFindings is AnalyzeNamespace without the Claude narrative:
+// the deterministic findings (warning events, failing scheduled jobs with their
+// last log lines) stated plainly. Seconds rather than tens of seconds, for
+// callers on a short deadline -- `blankcut diagnose` falls back to it.
+func (h *ProtocolHandler) AnalyzeNamespaceFindings(ctx context.Context, namespace string) (*models.NamespaceAnalysisResult, error) {
+	return h.analyzeNamespace(ctx, namespace, false)
+}
+
+func (h *ProtocolHandler) analyzeNamespace(ctx context.Context, namespace string, narrative bool) (*models.NamespaceAnalysisResult, error) {
 	startTime := time.Now()
 	h.logger.Info("Analyzing namespace", "namespace", namespace)
 
@@ -115,8 +127,24 @@ func (h *ProtocolHandler) AnalyzeNamespace(ctx context.Context, namespace string
 		}
 	}
 
+	// Scheduled work. A failing CronJob leaves every Deployment and Pod healthy,
+	// and the Warning event that marks it expires within the hour, so without
+	// this the analysis calls a namespace healthy while its jobs fail.
+	failingJobs, err := h.k8sClient.FailingCronJobs(ctx, namespace, cronJobLogTailLines)
+	if err != nil {
+		h.logger.Warn("Failed to check cronjobs", "namespace", namespace, "error", err)
+	}
+	for i := range failingJobs {
+		result.Issues = append(result.Issues, cronJobIssue(&failingJobs[i]))
+	}
+
+	if !narrative {
+		result.Analysis = deterministicSummary(namespace, result.Issues)
+		return result, nil
+	}
+
 	// Generate Claude analysis
-	analysisPrompt := h.generateNamespaceAnalysisPrompt(namespace, topology, events)
+	analysisPrompt := h.generateNamespaceAnalysisPrompt(namespace, topology, events, failingJobs)
 	systemPrompt := h.promptGenerator.GenerateSystemPrompt()
 
 	h.logger.Debug("Sending namespace analysis request to Claude",
@@ -126,7 +154,12 @@ func (h *ProtocolHandler) AnalyzeNamespace(ctx context.Context, namespace string
 
 	analysis, err := h.claudeProtocol.GetCompletion(ctx, systemPrompt, analysisPrompt)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get completion for namespace analysis: %w", err)
+		// The deterministic findings stand on their own; losing Claude should
+		// cost the narrative, not the whole answer.
+		h.logger.Warn("Claude analysis unavailable; returning deterministic findings",
+			"namespace", namespace, "error", err)
+		result.Analysis = deterministicSummary(namespace, result.Issues)
+		return result, nil
 	}
 
 	// Extract recommendations from analysis
@@ -173,8 +206,61 @@ func (h *ProtocolHandler) AnalyzeNamespace(ctx context.Context, namespace string
 	return result, nil
 }
 
+// cronJobLogTailLines is how much of a failed run's log reaches the analysis.
+const cronJobLogTailLines = 40
+
+// cronJobIssue turns a failing CronJob into an issue a person can act on.
+func cronJobIssue(cj *k8s.CronJobHealth) models.Issue {
+	since := "it has never succeeded"
+	if !cj.LastSuccess.IsZero() {
+		since = "last success " + cj.LastSuccess.UTC().Format(time.RFC3339)
+	}
+	desc := fmt.Sprintf("Scheduled job %s (%s) did not succeed on its last run at %s; %s.",
+		cj.Name, cj.Schedule, cj.LastSchedule.UTC().Format(time.RFC3339), since)
+	switch {
+	case cj.LogTail != "":
+		desc += " End of the failed run's log:\n" + lastLines(cj.LogTail, 8)
+	case cj.LogNote != "":
+		desc += " " + cj.LogNote + "."
+	}
+	return models.Issue{
+		Source:      "Kubernetes",
+		Category:    "CronJobFailing",
+		Severity:    "Warning",
+		Title:       "Scheduled job failing: " + cj.Name,
+		Description: desc,
+	}
+}
+
+// lastLines returns at most n trailing non-empty lines.
+func lastLines(s string, n int) string {
+	var lines []string
+	for _, l := range strings.Split(strings.TrimRight(s, "\n"), "\n") {
+		if strings.TrimSpace(l) != "" {
+			lines = append(lines, l)
+		}
+	}
+	if len(lines) > n {
+		lines = lines[len(lines)-n:]
+	}
+	return strings.Join(lines, "\n")
+}
+
+// deterministicSummary is the analysis when Claude is unavailable: the issues,
+// stated plainly.
+func deterministicSummary(namespace string, issues []models.Issue) string {
+	if len(issues) == 0 {
+		return fmt.Sprintf("No issues found in %s.", namespace)
+	}
+	out := fmt.Sprintf("%d issue(s) found in %s:\n", len(issues), namespace)
+	for _, is := range issues {
+		out += fmt.Sprintf("\n- %s: %s", is.Title, is.Description)
+	}
+	return out
+}
+
 // generateNamespaceAnalysisPrompt creates a prompt for namespace analysis
-func (h *ProtocolHandler) generateNamespaceAnalysisPrompt(namespace string, topology *k8s.NamespaceTopology, events []models.K8sEvent) string {
+func (h *ProtocolHandler) generateNamespaceAnalysisPrompt(namespace string, topology *k8s.NamespaceTopology, events []models.K8sEvent, failingJobs []k8s.CronJobHealth) string {
 	// Start with namespace overview
 	prompt := fmt.Sprintf("# Namespace Analysis: %s\n\n", namespace)
 
@@ -300,6 +386,32 @@ func (h *ProtocolHandler) generateNamespaceAnalysisPrompt(namespace string, topo
 			}
 			prompt += "\n"
 		}
+	}
+
+	// Failing scheduled jobs, with the log of the last failed run: the cause is
+	// never in the CronJob object, and usually is in that log.
+	if len(failingJobs) > 0 {
+		prompt += "## Failing Scheduled Jobs\n\n"
+		for _, cj := range failingJobs {
+			last := "never"
+			if !cj.LastSuccess.IsZero() {
+				last = cj.LastSuccess.UTC().Format(time.RFC3339)
+			}
+			prompt += fmt.Sprintf("### CronJob %s (schedule %q)\n- last scheduled run: %s (did not succeed)\n- last success: %s\n",
+				cj.Name, cj.Schedule, cj.LastSchedule.UTC().Format(time.RFC3339), last)
+			if cj.LastFailedJob != "" {
+				prompt += fmt.Sprintf("- last failed run: %s\n", cj.LastFailedJob)
+			}
+			if cj.LogTail != "" {
+				prompt += "\nEnd of that run's log:\n```\n" + lastLines(cj.LogTail, cronJobLogTailLines) + "\n```\n"
+			} else if cj.LogNote != "" {
+				prompt += "- log: " + cj.LogNote + "\n"
+			}
+			prompt += "\n"
+		}
+		prompt += "Explain what the log says went wrong for each failing job. If the log shows an error " +
+			"that was never serialized (for example `[object Object]`), say so plainly: the fix then starts " +
+			"with the application logging the real error.\n\n"
 	}
 
 	// Add analysis request
