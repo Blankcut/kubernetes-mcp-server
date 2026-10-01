@@ -11,7 +11,7 @@ import (
 
 // captureRequest runs one Complete call against a fake Messages API and returns
 // the JSON body the client sent.
-func captureRequest(t *testing.T, cfg ClaudeConfig) map[string]any {
+func captureRequest(t *testing.T, cfg *ClaudeConfig) map[string]any {
 	t.Helper()
 	var sent map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +26,7 @@ func captureRequest(t *testing.T, cfg ClaudeConfig) map[string]any {
 	cfg.APIKey = "sk-ant-test"
 	cfg.BaseURL = srv.URL
 	cfg.MaxTokens = 1024
-	out, err := NewClient(&cfg, nil).Complete(context.Background(), []Message{{Role: "user", Content: "hi"}})
+	out, err := NewClient(cfg, nil).Complete(context.Background(), []Message{{Role: "user", Content: "hi"}})
 	if err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
@@ -40,14 +40,14 @@ func captureRequest(t *testing.T, cfg ClaudeConfig) map[string]any {
 // 400. Leaving it unset in config must keep it off the wire, or those models
 // cannot be configured at all.
 func TestCompleteOmitsUnsetTemperature(t *testing.T) {
-	sent := captureRequest(t, ClaudeConfig{ModelID: "claude-sonnet-5"})
+	sent := captureRequest(t, &ClaudeConfig{ModelID: "claude-sonnet-5"})
 	if _, ok := sent["temperature"]; ok {
 		t.Errorf("temperature was sent although unset: %v", sent["temperature"])
 	}
 }
 
 func TestCompleteSendsConfiguredTemperature(t *testing.T) {
-	sent := captureRequest(t, ClaudeConfig{ModelID: "claude-haiku-4-5", Temperature: 0.3})
+	sent := captureRequest(t, &ClaudeConfig{ModelID: "claude-haiku-4-5", Temperature: 0.3})
 	if sent["temperature"] != 0.3 {
 		t.Errorf("temperature = %v, want 0.3", sent["temperature"])
 	}
