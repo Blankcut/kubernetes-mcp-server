@@ -99,12 +99,11 @@ claude:
   baseURL: "https://api.anthropic.com"
 
   # Model ID to use
-  # Options (as of Feb 2026):
+  # Options (as of Oct 2026):
+  #   - claude-sonnet-5 (thinks by default; remove `temperature` below, it 400s)
   #   - claude-opus-4-6 (most intelligent, best for complex tasks)
   #   - claude-sonnet-4-6 (best balance of speed and intelligence - recommended)
   #   - claude-haiku-4-5-20251001 (fastest, near-frontier intelligence)
-  #   - claude-3-5-sonnet-20241022 (legacy)
-  #   - claude-3-opus-20240229 (legacy)
   modelID: "claude-sonnet-4-6"
 
   # Maximum tokens to generate
@@ -113,6 +112,8 @@ claude:
 
   # Temperature for generation
   # Range: 0.0-1.0 (lower = more focused, higher = more creative)
+  # Omit it for Claude Sonnet 5, Opus 4.7 and later, which reject any
+  # non-default value; an unset temperature is not sent.
   temperature: 0.3
 
 # Environment Variable Overrides:

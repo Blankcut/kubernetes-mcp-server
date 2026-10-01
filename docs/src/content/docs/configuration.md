@@ -72,11 +72,12 @@ claude:
   # Claude API base URL
   baseURL: "https://api.anthropic.com"
   # Claude model ID
-  modelID: "claude-sonnet-4.5-20250514"
-  # Maximum tokens for Claude responses
+  modelID: "claude-sonnet-5"
+  # Maximum tokens for Claude responses (thinking counts against it)
   maxTokens: 8192
-  # Temperature for Claude responses (0.0-1.0)
-  temperature: 0.3
+  # Temperature (0.0-1.0). Leave unset for Claude Sonnet 5 and Opus 4.7+,
+  # which reject it with a 400; an unset value is not sent.
+  # temperature: 0.3
 ```
 
 ## Configuration Options
@@ -124,9 +125,9 @@ claude:
 |--------|-------------|---------|
 | `apiKey` | Claude API key | - |
 | `baseURL` | Claude API base URL | "https://api.anthropic.com" |
-| `modelID` | Claude model ID | "claude-sonnet-4.5-20250514" |
+| `modelID` | Claude model ID | - (required) |
 | `maxTokens` | Maximum tokens for response | 8192 |
-| `temperature` | Temperature for responses (0.0-1.0) | 0.3 |
+| `temperature` | Temperature for responses (0.0-1.0). Not sent when unset; Claude Sonnet 5 and Opus 4.7+ reject it | unset |
 
 ## Environment Variables
 
@@ -217,24 +218,25 @@ gitlab:
 
 ### Model Selection
 
-Kubernetes Claude MCP supports different Claude model variants. The default is `claude-sonnet-4.5-20250514` (Claude Sonnet 4.5), but you can choose others based on your needs:
+`modelID` is required and takes any current Claude model ID. The examples on this page use `claude-sonnet-5`; the Helm chart defaults to `claude-sonnet-4-6`. Some options:
 
-- `claude-sonnet-4.5-20250514` - Latest and most capable model (recommended)
-- `claude-sonnet-4-20250514` - Claude Sonnet 4, excellent performance
-- `claude-3-5-sonnet-20241022` - Claude 3.5 Sonnet, balanced performance
-- `claude-3-opus-20240229` - Claude 3 Opus, good for complex analysis
-- `claude-3-haiku-20240307` - Claude 3 Haiku, fastest model
+- `claude-sonnet-5` - strong analysis at Sonnet cost (recommended)
+- `claude-sonnet-4-6` - the previous Sonnet; accepts `temperature`
+- `claude-haiku-4-5` - fastest and cheapest
+
+Retired model IDs return a 404, so check Anthropic's model deprecations page when a model you pinned is approaching retirement.
 
 ### Response Parameters
 
 You can adjust two parameters that affect Claude's responses:
 
-1. `maxTokens` - Maximum number of tokens in the response (1-8192)
+1. `maxTokens` - Maximum number of tokens in the response (1-8192). Claude Sonnet 5 thinks before answering by default, and that thinking counts against this limit, so keep it at 8192 for Sonnet 5.
 2. `temperature` - Controls randomness in responses (0.0-1.0)
    - Lower values (e.g., 0.3) make responses more deterministic and focused
    - Higher values (e.g., 0.7) make responses more creative
+   - **Leave it unset for Claude Sonnet 5 and Opus 4.7 or later.** Those models reject any non-default value with a 400. An unset temperature is not sent at all.
 
-For troubleshooting and analysis, a temperature of 0.3-0.5 is recommended.
+On models that accept it, a temperature of 0.3-0.5 is recommended for troubleshooting and analysis.
 
 ## Advanced Configuration
 
@@ -279,7 +281,7 @@ kubernetes:
 
 claude:
   apiKey: "your_claude_api_key"
-  modelID: "claude-sonnet-4.5-20250514"
+  modelID: "claude-sonnet-5"
 ```
 
 ### Production Kubernetes Configuration
@@ -309,9 +311,8 @@ gitlab:
 claude:
   apiKey: "${CLAUDE_API_KEY}"
   baseURL: "https://api.anthropic.com"
-  modelID: "claude-sonnet-4.5-20250514"
+  modelID: "claude-sonnet-5"
   maxTokens: 8192
-  temperature: 0.3
 ```
 
 ## Troubleshooting Configuration

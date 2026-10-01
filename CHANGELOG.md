@@ -64,6 +64,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Raw Kubernetes manifests (k8s/ directory) in favor of Helm chart only
 
 ### Fixed
+- The `config.{dev,staging,prod}.yaml` files, README and docs named the model
+  `claude-sonnet-4.5-20250514`, an ID that never existed, so a config copied from them
+  failed with a 404. They now use `claude-sonnet-5` with `temperature` left unset, since
+  Sonnet 5 rejects a non-default temperature. Retired IDs (Claude 3.x, Sonnet 4) are gone
+  from the docs and example config. Deployments that set `modelID` explicitly are unaffected.
 - ArgoCD application logs (`GetApplicationLogs`) never received the `container`
   parameter: the request builder joined the query string into the URL path, where it
   was escaped as `%3F`. Query strings are now sent as queries for every ArgoCD call.
