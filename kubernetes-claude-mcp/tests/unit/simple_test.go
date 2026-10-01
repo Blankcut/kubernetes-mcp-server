@@ -27,7 +27,7 @@ func TestConfig_Validate_Valid(t *testing.T) {
 		Claude: config.ClaudeConfig{
 			APIKey:      "sk-test-key",
 			BaseURL:     "https://api.anthropic.com",
-			ModelID:     "claude-4-sonnet-20250522",
+			ModelID:     "claude-haiku-4-5",
 			MaxTokens:   8192,
 			Temperature: 0.3,
 		},
@@ -41,7 +41,7 @@ func TestConfig_Validate_MissingAddress(t *testing.T) {
 	cfg := &config.Config{
 		Claude: config.ClaudeConfig{
 			APIKey:  "sk-test-key",
-			ModelID: "claude-4-sonnet-20250522",
+			ModelID: "claude-haiku-4-5",
 		},
 	}
 
@@ -56,7 +56,7 @@ func TestConfig_Validate_MissingClaudeAPIKey(t *testing.T) {
 			Address: "localhost:8080",
 		},
 		Claude: config.ClaudeConfig{
-			ModelID: "claude-4-sonnet-20250522",
+			ModelID: "claude-haiku-4-5",
 		},
 	}
 
@@ -102,12 +102,12 @@ func TestConfig_Creation(t *testing.T) {
 	claudeCfg := &config.ClaudeConfig{
 		APIKey:      "sk-test-key",
 		BaseURL:     "https://api.anthropic.com",
-		ModelID:     "claude-4-sonnet-20250522",
+		ModelID:     "claude-haiku-4-5",
 		MaxTokens:   8192,
 		Temperature: 0.3,
 	}
 	assert.NotNil(t, claudeCfg)
-	assert.Equal(t, "claude-4-sonnet-20250522", claudeCfg.ModelID)
+	assert.Equal(t, "claude-haiku-4-5", claudeCfg.ModelID)
 }
 
 // Test basic functionality without external dependencies

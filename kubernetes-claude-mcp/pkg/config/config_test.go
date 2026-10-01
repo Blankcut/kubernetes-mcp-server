@@ -37,7 +37,7 @@ gitlab:
 claude:
   apiKey: "${TEST_CLAUDE_KEY}"
   baseURL: "https://api.anthropic.com"
-  modelID: "claude-sonnet-4.5-20250514"
+  modelID: "claude-haiku-4-5"
   maxTokens: 4096
   temperature: 0.5
 `
@@ -113,7 +113,7 @@ gitlab:
 claude:
   apiKey: "config-file-claude-key"
   baseURL: "https://api.anthropic.com"
-  modelID: "claude-sonnet-4.5-20250514"
+  modelID: "claude-haiku-4-5"
   maxTokens: 4096
   temperature: 0.5
 `
@@ -145,7 +145,7 @@ func validBase() *Config {
 	cfg.Server.Address = ":8080"
 	cfg.Claude.APIKey = "sk-ant-test"
 	cfg.Claude.BaseURL = "https://api.anthropic.com"
-	cfg.Claude.ModelID = "claude-sonnet-4.5-20250514"
+	cfg.Claude.ModelID = "claude-haiku-4-5"
 	cfg.Claude.MaxTokens = 4096
 	cfg.Claude.Temperature = 0.5
 	return cfg

@@ -106,9 +106,8 @@ gitlab:
 claude:
   apiKey: "${API_KEY}"
   baseURL: "https://api.anthropic.com"
-  modelID: "claude-sonnet-4.5-20250514"
+  modelID: "claude-sonnet-5"
   maxTokens: 8192
-  temperature: 0.3
 ```
 
 You can use the provided Go templates or environment variable interpolation method.
