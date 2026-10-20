@@ -31,14 +31,17 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      # goinstall builds the linter with the Go set up above. The prebuilt
-      # binary can lag the toolchain: on 2026-10-20 it could not read go1.27.3's
-      # export data ("export data version 5 is greater than maximum supported
-      # version 4") and failed every commit on typecheck, code unchanged.
+      # The linter has to understand the toolchain's export data. v2.13.2's
+      # x/tools could not read go1.27.3's ("export data version 5 is greater
+      # than maximum supported version 4"), so from 2026-10-20 Lint failed every
+      # commit on typecheck with the code unchanged; v2.15.0 (x/tools 0.52)
+      # reads it. When a Go patch release breaks Lint this way, bump this
+      # version. goinstall builds the linter with the Go set up above, so it is
+      # never older than the go.mod it checks.
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13.2
+          version: v2.15.0
           install-mode: goinstall
           working-directory: kubernetes-claude-mcp
           args: --timeout=5m
