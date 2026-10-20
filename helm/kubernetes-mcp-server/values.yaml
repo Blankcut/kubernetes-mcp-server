@@ -3,6 +3,7 @@ replicaCount: 1
 image:
   repository: blankcut/kubernetes-mcp-server
   pullPolicy: IfNotPresent
+  # Empty runs the chart's appVersion, which is the release the chart ships with.
   tag: ""
 
 imagePullSecrets: []
@@ -16,10 +17,12 @@ serviceAccount:
 
 podAnnotations: {}
 
+# UID/GID 1001 is the image's own `mcp` user.
 podSecurityContext:
   runAsNonRoot: true
-  runAsUser: 1000
-  fsGroup: 1000
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
 
 securityContext:
   allowPrivilegeEscalation: false
@@ -66,52 +69,82 @@ tolerations: []
 
 affinity: {}
 
+# Rendered into the server's config file. Credentials are not set here: they
+# come from the Secret (see `secrets`) through environment variables.
 config:
   server:
     address: ":8080"
     readTimeout: 30
-    writeTimeout: 60
-    auth:
-      apiKey: ""
-  
+    # Seconds for a whole request. A Claude call may take up to 120s and a
+    # namespace question makes two, so anything shorter can cut a response off.
+    writeTimeout: 300
+
   kubernetes:
     kubeconfig: ""
     inCluster: true
     defaultContext: ""
     defaultNamespace: "default"
   
+  # "" turns ArgoCD off. Set it and secrets.argocdToken together.
   argocd:
     url: ""
-    authToken: ""
     insecure: false
-  
+
+  # "" turns GitLab off. Set it (e.g. https://gitlab.com) and secrets.gitlabToken together.
   gitlab:
-    url: "https://gitlab.com"
-    authToken: ""
+    url: ""
     apiVersion: "v4"
-    projectPath: ""
-  
+
   claude:
-    apiKey: ""
     baseURL: "https://api.anthropic.com"
     modelID: "claude-sonnet-4-6"
     maxTokens: 8192
+    # 0 is not sent. Claude Sonnet 5 rejects any explicit temperature, so set
+    # this to 0 if you change modelID to claude-sonnet-5.
     temperature: 0.3
 
+# Workload Identity Federation: authenticate to Claude with a short-lived,
+# projected service-account token instead of secrets.claudeApiKey. Create the
+# issuer, service account and federation rule in the Claude Console first.
+federation:
+  enabled: false
+  federationRuleID: ""
+  organizationID: ""
+  serviceAccountID: ""
+  # Only for a rule that covers more than one workspace.
+  workspaceID: ""
+  identityTokenFile: /var/run/secrets/anthropic.com/token
+  audience: https://api.anthropic.com
+  # The Kubernetes minimum. Identity tokens are single-use and Kubernetes
+  # rotates the file at ~80% of its lifetime; a longer projection makes a
+  # renewal replay a token that was already spent.
+  expirationSeconds: 600
+
+# The Secret the server reads its credentials from. With create: false, create
+# it yourself, named after the release, with key api-key and whichever of
+# argocd-token, gitlab-token and claude-api-key you use.
 secrets:
   create: true
-  apiKey: ""
+  apiKey: ""          # the key clients send; required
   argocdToken: ""
   gitlabToken: ""
-  claudeApiKey: ""
+  claudeApiKey: ""    # not needed with federation.enabled
 
 rbac:
   create: true
   clusterRole: true
+  # Read-only. Secrets are deliberately absent: the API returns whatever this
+  # role can read, so granting them would serve their contents to any client
+  # holding the API key. pods/log lets namespace analysis show the end of a
+  # failed CronJob run; persistentvolumeclaims lets troubleshooting check a
+  # Pod's volumes.
   rules:
     - apiGroups: [""]
-      resources: ["pods", "services", "endpoints", "namespaces", "events", "configmaps", "secrets"]
+      resources: ["pods", "services", "endpoints", "namespaces", "events", "configmaps", "persistentvolumeclaims"]
       verbs: ["get", "list", "watch"]
+    - apiGroups: [""]
+      resources: ["pods/log"]
+      verbs: ["get"]
     - apiGroups: ["apps"]
       resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
       verbs: ["get", "list", "watch"]
@@ -143,3 +176,9 @@ readinessProbe:
   timeoutSeconds: 3
   failureThreshold: 3
 
+# Added to the server container as-is.
+extraEnv: []
+#  - name: LOG_LEVEL
+#    value: debug
+extraVolumes: []
+extraVolumeMounts: []

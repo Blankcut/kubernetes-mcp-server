@@ -18,215 +18,87 @@
 [![License](https://img.shields.io/github/license/Blankcut/kubernetes-mcp-server)](LICENSE)
 [![GitHub release](https://img.shields.io/github/v/release/Blankcut/kubernetes-mcp-server)](https://github.com/Blankcut/kubernetes-mcp-server/releases)
 
-> A Model Context Protocol (MCP) server for Kubernetes cluster management with ArgoCD and GitLab integration.
+> A Go server that answers questions about a Kubernetes cluster with Claude, using context from the
+> Kubernetes API and, optionally, ArgoCD and GitLab.
 
-This repository contains the Claude Kubernetes MCP (Model Context Protocol) server, built in Go. The server integrates with ArgoCD, GitLab, Claude AI, and Kubernetes to enable advanced control and automation of Kubernetes environments.
+**Documentation: [docs.blankcut.com/kubernetes-mcp-server](https://docs.blankcut.com/kubernetes-mcp-server/)**
+— quick start, installation, every config key and endpoint, and troubleshooting.
 
-[See Our Documentation Here](https://docs.blankcut.com/kubernetes-mcp-server/)
+## What it does
 
-## Table of Contents
-- [Overview](#overview)
-- [Prerequisites](#prerequisites)
-- [Setup Instructions](#setup-instructions)
-- [Configuration](#configuration)
-- [Running Locally](#running-locally)
-- [Building and Running with Docker](#building-and-running-with-docker)
-- [Production Deployment](#production-deployment)
-- [API Documentation](#api-documentation)
-- [Postman Collection](#postman-collection)
-- [License](#license)
+- **Reads the cluster** — namespaces, any resource type (custom resources too), events, and a
+  per-namespace map of resources, relationships and health.
+- **Finds problems without Claude** — Warning events and failing CronJobs (with the end of the
+  failed run's log) become a list of issues in seconds (`?narrative=false`).
+- **Asks Claude** about a resource, a whole namespace, or a GitLab merge request, with the context
+  it collected.
+- **Watches its own ArgoCD access** — it checks every 60 seconds that its token can still read
+  Applications, so a lost RBAC grant shows up as an error rather than an empty list.
+- **Authenticates to Claude with an API key or Workload Identity Federation**, so it can run
+  without a long-lived key.
 
----
+It only reads: nothing it does changes Kubernetes, ArgoCD or GitLab.
 
-## Overview
-This server is designed to orchestrate Kubernetes workloads using Claude AI, GitLab, ArgoCD, and Vault. It exposes a REST API that allows programmatic interaction with these systems, driven by a configured `config.yaml` and authenticated using an API key.
+It is a **REST API**. Despite the name it does not implement the Model Context Protocol's JSON-RPC
+transport, so MCP clients such as Claude Desktop can't connect to it directly; call it over HTTP.
 
-## Prerequisites
-- Go 1.20+
-- Docker
-- Kubernetes cluster & valid `~/.kube/config`
-- EKS cluster with AWS_PROFILE set locally
-- ArgoCD credentials
-- GitLab personal access token
-- Claude API key (Anthropic)
-- Vault credentials (optional, depending on use)
+## Quick start
 
-## Setup Instructions
+Download a release binary (Linux and macOS, amd64 and arm64) from
+[Releases](https://github.com/Blankcut/kubernetes-mcp-server/releases), write a `config.yaml`:
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/blankcut/kubernetes-mcp-server.git
-cd kubernetes-mcp-server
-```
-
-### 2. Export Required Environment Variables
-Export credentials for ArgoCD, GitLab, and Claude:
-```bash
-export ARGOCD_USERNAME="argocd-username"
-export ARGOCD_PASSWORD="argocd-password"
-export GITLAB_TOKEN="gitlab-token"
-export CLAUDE_API_KEY="claude-api-key"
-export VAULT_TOKEN="optional-if-using-vault"
-```
-
-Ensure a kubeconfig is available:
-```bash
-export KUBECONFIG=~/.kube/config
-```
-
-### 3. Configure `config.yaml`
-Update `kubernetes-claude-mcp/config.yaml` with credentials and server preferences:
 ```yaml
 server:
   address: ":8080"
-  readTimeout: 30
-  writeTimeout: 60
+  writeTimeout: 300
   auth:
-    apiKey: ""${API_KEY}"" 
-
+    apiKey: "${API_KEY}"
 kubernetes:
-  kubeconfig: ""
-  inCluster: false
-  defaultContext: ""
-  defaultNamespace: "default"
-
-argocd:
-  url: "http://example.argocd.com"
-  authToken: ""
-  username: "${ARGOCD_USERNAME}"
-  password: "${ARGOCD_PASSWORD}"
-  insecure: true
-
-gitlab:
-  url: "https://gitlab.com"
-  authToken: "${AUTH_TOKEN}"
-  apiVersion: "v4"
-  projectPath: ""${PROJECT_PATH}""
-
+  inCluster: false          # uses $KUBECONFIG or ~/.kube/config
 claude:
-  apiKey: "${API_KEY}"
+  apiKey: "${CLAUDE_API_KEY}"
   baseURL: "https://api.anthropic.com"
   modelID: "claude-sonnet-5"
   maxTokens: 8192
 ```
 
-You can use the provided Go templates or environment variable interpolation method.
+and run it:
 
-### 4. Add API Key for Postman
-Please ensure a `config.yaml` includes an `apiKey`. This will be used to authenticate requests in Postman or any external client.
+```bash
+export API_KEY=$(openssl rand -hex 32) CLAUDE_API_KEY=sk-ant-...
+./mcp-server-darwin-arm64 --config config.yaml
 
----
+curl -s -H "X-API-Key: $API_KEY" \
+  "http://localhost:8080/api/v1/namespaces/default/analysis?narrative=false"
+```
 
-## Running Locally
+The [quick start](https://docs.blankcut.com/kubernetes-mcp-server/quick-start/) walks through it,
+including checksum verification.
+
+## Install
+
+| Method | |
+|---|---|
+| Helm | `helm install kubernetes-mcp-server ./helm/kubernetes-mcp-server --set secrets.apiKey=... --set secrets.claudeApiKey=...` from a checkout of a release tag. See [Installation](https://docs.blankcut.com/kubernetes-mcp-server/installation/). |
+| Docker | [`blankcut/kubernetes-mcp-server`](https://hub.docker.com/r/blankcut/kubernetes-mcp-server) (`linux/amd64`, `linux/arm64`); mount a config at `/app/config.yaml`. |
+| Binary | [Releases](https://github.com/Blankcut/kubernetes-mcp-server/releases), with `checksums.txt`. |
+| Source | Go 1.26+: `cd kubernetes-claude-mcp && go build -o mcp-server ./cmd/server`. |
+
+## Development
+
 ```bash
 cd kubernetes-claude-mcp
-go run ./cmd/server/main.go
+go test ./...
+go run ./cmd/server --config config.yaml --log-level debug
 ```
 
-### With Debug Logging:
-```bash
-LOG_LEVEL=debug go run ./cmd/server/main.go --config config.yaml
-```
-
-Server will start and bind to the configured port in `config.yaml` (default: 8080).
-
----
-
-## Building and Running with Docker
-### 1. Build the Image
-```bash
-cd kubernetes-claude-mcp
-docker build -t claude-mcp-server -f Dockerfile .
-```
-
-### 2. Run the Container (second build option included)
-```bash
-cd kubernetes-claude-mcp
-docker-compose build
-docker-compose up -d
-```
-
----
-
-## Production Deployment
-
-A Helm chart is included in the repository for Kubernetes deployment:
-
-### 1. Navigate to the Helm Chart Directory
-```bash
-cd kubernetes-claude-mcp/deployments/helm
-```
-
-### 2. Deploy with Helm
-Update `values.yaml` with appropriate values and run:
-```bash
-helm install claude-mcp .
-```
-
-To upgrade:
-```bash
-helm upgrade claude-mcp .
-```
-
-Please ensure secrets and config maps are properly mounted and secured in the cluster.
-
----
-
-## API Documentation
-Below are the primary endpoints exposed by the MCP server. All requests require the `X-API-Key` header:
-
-### General
-- **Health Check**
-  - `GET /api/v1/health`
-
-### Kubernetes
-- **List Namespaces**
-  - `GET /api/v1/namespaces`
-- **List Resources**
-  - `GET /api/v1/resources/{kind}?namespace={ns}`
-- **Get Specific Resource**
-  - `GET /api/v1/resources/{kind}/{name}?namespace={ns}`
-- **Get Events for a Resource**
-  - `GET /api/v1/events?namespace={ns}&resource={kind}&name={name}`
-
-### ArgoCD
-- **List Applications**
-  - `GET /api/v1/argocd/applications`
-
-### Claude MCP Endpoints
-- **Analyze Resource**
-  - `POST /api/v1/mcp/resource`
-- **Troubleshoot Resource**
-  - `POST /api/v1/mcp/troubleshoot`
-- **Commit Analysis (GitLab)**
-  - `POST /api/v1/mcp/commit`
-- **Generic MCP Request**
-  - `POST /api/v1/mcp`
-
-All POST endpoints accept a JSON payload containing fields such as:
-```json
-{
-  "resource": "pod",
-  "name": "example-pod",
-  "namespace": "default",
-  "query": "What’s wrong with this pod?"
-}
-```
-
----
-
-## Postman Collection
-A ready-to-use Postman collection will be available soon.
----
+A Postman collection is in [`postman/`](postman/). Changes are listed in
+[`CHANGELOG.md`](CHANGELOG.md); contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Donation
-Please contribute to our coffee fund to help us continue to do great things [Buy Me Coffee](https://buymeacoffee.com/blankcut)
+
+Please contribute to our coffee fund to help us continue to do great things: [Buy Me Coffee](https://buymeacoffee.com/blankcut)
 
 ## License
-This project is licensed under the [MIT License](./LICENSE).
 
----
-
-## Contributing
-Documentation will be expanded soon. If you’d like to contribute, feel free to open a pull request or file an issue!
-
+[MIT](./LICENSE)

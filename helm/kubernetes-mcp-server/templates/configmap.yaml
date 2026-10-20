@@ -28,7 +28,6 @@ data:
       url: {{ .Values.config.gitlab.url | quote }}
       authToken: "${GITLAB_TOKEN}"
       apiVersion: {{ .Values.config.gitlab.apiVersion | quote }}
-      projectPath: {{ .Values.config.gitlab.projectPath | quote }}
     
     claude:
       apiKey: "${CLAUDE_API_KEY}"

@@ -18,6 +18,14 @@ func (s *Server) setupRoutes() {
 	// Apply CORS middleware to all routes
 	s.router.Use(s.corsMiddleware)
 
+	// Answer CORS preflights. mux runs router middleware only for a request
+	// that matches a route, and every route below is GET- or POST-only, so an
+	// OPTIONS request used to fall through to a 404/405 without ever reaching
+	// corsMiddleware -- browsers could not call the API at all. This route
+	// matches any OPTIONS request; corsMiddleware answers it before the
+	// handler runs.
+	s.router.Methods(http.MethodOptions).HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+
 	// API version prefix
 	apiV1 := s.router.PathPrefix("/api/v1").Subrouter()
 

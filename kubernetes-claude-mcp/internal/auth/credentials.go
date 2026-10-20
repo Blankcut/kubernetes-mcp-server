@@ -52,7 +52,6 @@ type CredentialProvider struct {
 	config         *config.Config
 	logger         *logging.Logger
 	secretsManager *SecretsManager
-	vaultManager   *VaultManager
 }
 
 // NewCredentialProvider creates a new credential provider
@@ -64,7 +63,6 @@ func NewCredentialProvider(cfg *config.Config) *CredentialProvider {
 		config:         cfg,
 		logger:         logger,
 		secretsManager: NewSecretsManager(logger),
-		vaultManager:   NewVaultManager(logger),
 	}
 }
 
@@ -151,16 +149,6 @@ func (p *CredentialProvider) loadArgoCDCredentials(ctx context.Context) error {
 		}
 	}
 
-	// Try to load from vault if available
-	if p.vaultManager != nil && p.vaultManager.IsAvailable() {
-		creds, err := p.vaultManager.GetCredentials(ctx, "argocd")
-		if err == nil && creds != nil {
-			p.credentials[ServiceArgoCD] = creds
-			p.logger.Info("Loaded ArgoCD credentials from vault")
-			return nil
-		}
-	}
-
 	// Primary source: Environment variables
 	// Check both ARGOCD_AUTH_TOKEN and ARGOCD_TOKEN for compatibility
 	token := os.Getenv("ARGOCD_AUTH_TOKEN")
@@ -228,16 +216,6 @@ func (p *CredentialProvider) loadGitLabCredentials(ctx context.Context) error {
 		}
 	}
 
-	// Try to load from vault if available
-	if p.vaultManager != nil && p.vaultManager.IsAvailable() {
-		creds, err := p.vaultManager.GetCredentials(ctx, "gitlab")
-		if err == nil && creds != nil {
-			p.credentials[ServiceGitLab] = creds
-			p.logger.Info("Loaded GitLab credentials from vault")
-			return nil
-		}
-	}
-
 	// Primary source: Environment variables
 	// Check both GITLAB_AUTH_TOKEN and GITLAB_TOKEN for compatibility
 	token := os.Getenv("GITLAB_AUTH_TOKEN")
@@ -279,16 +257,6 @@ func (p *CredentialProvider) loadClaudeCredentials(ctx context.Context) error {
 		if err == nil && creds != nil {
 			p.credentials[ServiceClaude] = creds
 			p.logger.Info("Loaded Claude credentials from secrets manager")
-			return nil
-		}
-	}
-
-	// Try to load from vault if available
-	if p.vaultManager != nil && p.vaultManager.IsAvailable() {
-		creds, err := p.vaultManager.GetCredentials(ctx, "claude")
-		if err == nil && creds != nil {
-			p.credentials[ServiceClaude] = creds
-			p.logger.Info("Loaded Claude credentials from vault")
 			return nil
 		}
 	}

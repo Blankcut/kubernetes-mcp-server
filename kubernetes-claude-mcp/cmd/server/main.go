@@ -23,10 +23,13 @@ import (
 func main() {
 	// Parse command line flags
 	configPath := flag.String("config", "config.yaml", "path to config file")
-	logLevel := flag.String("log-level", "info", "logging level (debug, info, warn, error)")
+	logLevel := flag.String("log-level", defaultLogLevel(), "logging level (debug, info, warn, error); defaults to $LOG_LEVEL, then info")
 	flag.Parse()
 
-	// Initialize logger
+	// Initialize logger. The logger reads LOG_LEVEL, so the flag's value is
+	// handed to it there -- and the flag defaults to LOG_LEVEL, so setting
+	// only the environment variable works too (it used to be overwritten
+	// with "info" here, which made it a no-op).
 	_ = os.Setenv("LOG_LEVEL", *logLevel)
 	logger := logging.NewLogger()
 	logger.Info("Starting Kubernetes Claude MCP server")
@@ -178,4 +181,12 @@ func main() {
 	}
 
 	logger.Info("Server shutdown complete")
+}
+
+// defaultLogLevel is the --log-level default: $LOG_LEVEL when set, else info.
+func defaultLogLevel() string {
+	if v := os.Getenv("LOG_LEVEL"); v != "" {
+		return v
+	}
+	return "info"
 }

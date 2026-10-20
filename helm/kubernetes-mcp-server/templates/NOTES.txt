@@ -33,14 +33,16 @@ To learn more about the release, try:
 2. Check the health of the application:
   curl http://localhost:8080/api/v1/health
 
-3. Important: Update the secrets with your actual credentials:
+{{- if and .Values.secrets.create (not .Values.secrets.apiKey) }}
+
+3. WARNING: secrets.apiKey is empty, so every endpoint except health answers 401.
+   Re-run with --set secrets.apiKey=<a long random value>, or set
+   secrets.create=false and create the Secret yourself:
+
   kubectl create secret generic {{ include "kubernetes-mcp-server.fullname" . }} \
-    --from-literal=api-key=YOUR_API_KEY \
-    --from-literal=argocd-token=YOUR_ARGOCD_TOKEN \
-    --from-literal=gitlab-token=YOUR_GITLAB_TOKEN \
-    --from-literal=claude-api-key=YOUR_CLAUDE_API_KEY \
     --namespace {{ .Release.Namespace }} \
-    --dry-run=client -o yaml | kubectl apply -f -
+    --from-literal=api-key=YOUR_API_KEY \
+    --from-literal=claude-api-key=YOUR_CLAUDE_API_KEY   # plus argocd-token / gitlab-token if you use them
+{{- end }}
 
-For more information, visit: https://github.com/Blankcut/kubernetes-mcp-server
-
+Documentation: https://docs.blankcut.com/kubernetes-mcp-server/

@@ -48,10 +48,6 @@ gitlab:
   
   # API version (usually v4)
   apiVersion: "v4"
-  
-  # Default project path (optional)
-  # Example: "username/project-name" or "group/subgroup/project"
-  projectPath: "your-username/your-project"
 
 claude:
   # Claude API key from Anthropic

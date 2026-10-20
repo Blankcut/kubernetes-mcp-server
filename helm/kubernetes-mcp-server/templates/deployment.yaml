@@ -51,21 +51,48 @@ spec:
             secretKeyRef:
               name: {{ include "kubernetes-mcp-server.fullname" . }}
               key: api-key
+        # Optional, so a Secret holding only the integrations you use still
+        # starts the Pod. A missing key reads as unset.
         - name: ARGOCD_TOKEN
           valueFrom:
             secretKeyRef:
               name: {{ include "kubernetes-mcp-server.fullname" . }}
               key: argocd-token
+              optional: true
         - name: GITLAB_TOKEN
           valueFrom:
             secretKeyRef:
               name: {{ include "kubernetes-mcp-server.fullname" . }}
               key: gitlab-token
+              optional: true
+        {{- if .Values.federation.enabled }}
+        # Workload Identity Federation: the server exchanges the projected token
+        # mounted below for a Claude access token, and holds no API key.
+        - name: ANTHROPIC_IDENTITY_TOKEN_FILE
+          value: {{ .Values.federation.identityTokenFile | quote }}
+        - name: ANTHROPIC_FEDERATION_RULE_ID
+          value: {{ required "federation.federationRuleID is required when federation.enabled" .Values.federation.federationRuleID | quote }}
+        - name: ANTHROPIC_ORGANIZATION_ID
+          value: {{ required "federation.organizationID is required when federation.enabled" .Values.federation.organizationID | quote }}
+        {{- with .Values.federation.serviceAccountID }}
+        - name: ANTHROPIC_SERVICE_ACCOUNT_ID
+          value: {{ . | quote }}
+        {{- end }}
+        {{- with .Values.federation.workspaceID }}
+        - name: ANTHROPIC_WORKSPACE_ID
+          value: {{ . | quote }}
+        {{- end }}
+        {{- else }}
         - name: CLAUDE_API_KEY
           valueFrom:
             secretKeyRef:
               name: {{ include "kubernetes-mcp-server.fullname" . }}
               key: claude-api-key
+              optional: true
+        {{- end }}
+        {{- with .Values.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         volumeMounts:
         - name: config
           mountPath: /app/config.yaml
@@ -73,12 +100,32 @@ spec:
           readOnly: true
         - name: tmp
           mountPath: /tmp
+        {{- if .Values.federation.enabled }}
+        - name: anthropic-token
+          mountPath: {{ dir .Values.federation.identityTokenFile | quote }}
+          readOnly: true
+        {{- end }}
+        {{- with .Values.extraVolumeMounts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       volumes:
       - name: config
         configMap:
           name: {{ include "kubernetes-mcp-server.fullname" . }}
       - name: tmp
         emptyDir: {}
+      {{- if .Values.federation.enabled }}
+      - name: anthropic-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: {{ .Values.federation.audience | quote }}
+              expirationSeconds: {{ .Values.federation.expirationSeconds }}
+              path: {{ base .Values.federation.identityTokenFile | quote }}
+      {{- end }}
+      {{- with .Values.extraVolumes }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -191,7 +191,7 @@ If you get 404 errors:
 
 ## Additional Resources
 
-- [API Documentation](../docs/src/content/docs/api-overview.md)
-- [Server Configuration](../docs/src/content/docs/configuration.md)
+- [API reference](https://docs.blankcut.com/kubernetes-mcp-server/api-overview/)
+- [Configuration](https://docs.blankcut.com/kubernetes-mcp-server/configuration/)
 - [GitHub Repository](https://github.com/Blankcut/kubernetes-mcp-server)
 

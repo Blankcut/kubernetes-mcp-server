@@ -120,3 +120,31 @@ func TestGetCredentialsUnexpiredAndMissing(t *testing.T) {
 		t.Fatal("expected an error for a service with no credentials")
 	}
 }
+
+// v1.3.0 shipped a Vault stub that, whenever VAULT_ADDR and VAULT_TOKEN were
+// both set, replaced the ArgoCD and GitLab credentials with hardcoded
+// placeholder tokens -- so every call to either system failed with 401 while
+// the real tokens sat unused in the environment. Vault was never implemented;
+// those variables must not change which credentials are loaded.
+func TestVaultEnvironmentDoesNotReplaceCredentials(t *testing.T) {
+	t.Setenv("VAULT_ADDR", "https://vault.example.com")
+	t.Setenv("VAULT_TOKEN", "s.example")
+	t.Setenv("SECRETS_DIR", t.TempDir()+"/absent")
+	t.Setenv("ARGOCD_AUTH_TOKEN", "argocd-real")
+	t.Setenv("GITLAB_AUTH_TOKEN", "gitlab-real")
+
+	p := NewCredentialProvider(&config.Config{})
+	ctx := context.Background()
+	if err := p.loadArgoCDCredentials(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.loadGitLabCredentials(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := p.credentials[ServiceArgoCD].Token; got != "argocd-real" {
+		t.Errorf("ArgoCD token = %q, want the one from ARGOCD_AUTH_TOKEN", got)
+	}
+	if got := p.credentials[ServiceGitLab].Token; got != "gitlab-real" {
+		t.Errorf("GitLab token = %q, want the one from GITLAB_AUTH_TOKEN", got)
+	}
+}

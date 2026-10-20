@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-20
+
+### Fixed
+- **Setting `VAULT_ADDR` and `VAULT_TOKEN` no longer breaks ArgoCD and GitLab.** Vault support
+  was a stub: with both variables set, it replaced the configured ArgoCD and GitLab tokens with
+  hardcoded placeholder values, so every call to either system failed with `401`. Vault was never
+  implemented, so the stub is gone and those variables are ignored.
+- **`LOG_LEVEL` works.** The server overwrote it with the `--log-level` flag's default before the
+  logger read it, so setting only the environment variable did nothing. `--log-level` now defaults
+  to `$LOG_LEVEL`, then `info`; an explicit flag still wins.
+- **Browsers can call the API.** Every route is GET- or POST-only, and mux runs middleware only for
+  a matched route, so CORS preflight (`OPTIONS`) requests got a `404` or `405` without CORS headers
+  and no cross-origin call could succeed. Preflights are now answered with `204`, and
+  `X-API-Key` is an allowed header.
+- **An unset API key can't be matched.** With `server.auth.apiKey` empty (for example an unset
+  `${API_KEY}`), an empty presented key compared equal to it. Every secured endpoint now refuses
+  requests when no key is configured, and the key is compared in constant time.
+- The `config.{dev,staging,prod}.yaml` files, README and docs named the model
+  `claude-sonnet-4.5-20250514`, an ID that never existed, so a config copied from them
+  failed with a 404. They now use `claude-sonnet-5` with `temperature` left unset, since
+  Sonnet 5 rejects a non-default temperature. Retired IDs (Claude 3.x, Sonnet 4) are gone
+  from the docs and example config. Deployments that set `modelID` explicitly are unaffected.
+
+### Changed (Helm chart 1.4.0)
+- **A default install runs the current release.** `appVersion` had stayed at `1.0.3` through
+  v1.3.0, so `image.tag: ""` installed an image without the CronJob checks, the ArgoCD
+  authorization probe or Workload Identity Federation. The release workflow now refuses to publish
+  a tag that `Chart.yaml`'s `appVersion` doesn't match.
+- **The default role no longer reads Secrets.** The API returns whatever the role can read, so the
+  old default served every Secret in the cluster to any API-key holder. It gains `get` on
+  `pods/log` (the failed CronJob log tail) and `persistentvolumeclaims` (troubleshooting a Pod's
+  volumes) instead.
+- **ArgoCD and GitLab are off by default.** `config.gitlab.url` defaulted to `https://gitlab.com`,
+  so an install without a GitLab token failed startup validation.
+- `config.server.writeTimeout` defaults to `300`: Claude-backed requests can run past the old 60s,
+  which closed the connection with no response.
+- New `federation.*` values configure Workload Identity Federation (env vars and the projected
+  token), and `extraEnv`, `extraVolumes` and `extraVolumeMounts` reach the container.
+- `argocd-token`, `gitlab-token` and `claude-api-key` are optional Secret keys, so a Secret with
+  only what you use starts the Pod.
+- The Pod runs as UID/GID 1001, the image's own user (it was 1000).
+
+### Removed
+- The ignored `gitlab.projectPath` key from the chart and example configs, and the unused
+  credential keys under the chart's `config:` values (credentials come from the Secret).
+- The Astro documentation site and its image workflow. The docs live at
+  [docs.blankcut.com/kubernetes-mcp-server](https://docs.blankcut.com/kubernetes-mcp-server/).
+
+## [1.0.0 – 1.3.0] - 2026-02-21 to 2026-09-30
+
+Releases v1.0.0 through v1.3.0 were tagged without cutting this file, so their changes are
+collected here together.
+
 ### Added
 - Namespace analysis now checks scheduled work. A CronJob whose latest run did not
   succeed is reported as a `CronJobFailing` issue with the end of its last failed run's
@@ -64,11 +117,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Raw Kubernetes manifests (k8s/ directory) in favor of Helm chart only
 
 ### Fixed
-- The `config.{dev,staging,prod}.yaml` files, README and docs named the model
-  `claude-sonnet-4.5-20250514`, an ID that never existed, so a config copied from them
-  failed with a 404. They now use `claude-sonnet-5` with `temperature` left unset, since
-  Sonnet 5 rejects a non-default temperature. Retired IDs (Claude 3.x, Sonnet 4) are gone
-  from the docs and example config. Deployments that set `modelID` explicitly are unaffected.
 - ArgoCD application logs (`GetApplicationLogs`) never received the `container`
   parameter: the request builder joined the query string into the URL path, where it
   was escaped as `%3F`. Query strings are now sent as queries for every ArgoCD call.

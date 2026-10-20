@@ -20,7 +20,6 @@ gitlab:
   url: "https://gitlab.example.com"
   authToken: "${GITLAB_TOKEN}"
   apiVersion: "v4"
-  projectPath: "staging/app"
 
 claude:
   apiKey: "${CLAUDE_API_KEY}"

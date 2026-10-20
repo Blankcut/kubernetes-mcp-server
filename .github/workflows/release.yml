@@ -41,6 +41,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      # The chart's appVersion is the image a default `helm install` runs. It
+      # sat at 1.0.3 through v1.3.0, so new installs got an image three
+      # releases old with none of its fixes. Refuse to publish a release the
+      # chart does not name; bump Chart.yaml (version and appVersion) first.
+      - name: Check the Helm chart names this release
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          want="${RELEASE_TAG#v}"
+          have=$(sed -n 's/^appVersion: *"\{0,1\}\([^"]*\)"\{0,1\} *$/\1/p' helm/kubernetes-mcp-server/Chart.yaml)
+          if [ "$have" != "$want" ]; then
+            echo "::error file=helm/kubernetes-mcp-server/Chart.yaml::appVersion is '$have' but this release is '$want'. Bump the chart's version and appVersion, then tag again."
+            exit 1
+          fi
+          echo "Chart appVersion $have matches the release."
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v4
         with:

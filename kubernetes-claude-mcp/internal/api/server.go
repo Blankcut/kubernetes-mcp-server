@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/subtle"
 	"net/http"
 	"strings"
 	"time"
@@ -150,8 +151,15 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			apiKey = parts[1]
 		}
 
-		// Validate the API key against the configured key
-		if apiKey != s.config.Auth.APIKey {
+		// Fail closed when no key is configured: an unset ${API_KEY} expands to
+		// "", and an empty presented key must never match an empty configured
+		// one. Compare in constant time so the key cannot be guessed byte by
+		// byte from response timing.
+		if s.config.Auth.APIKey == "" {
+			s.respondWithError(w, http.StatusUnauthorized, "Invalid API key", nil)
+			return
+		}
+		if subtle.ConstantTimeCompare([]byte(apiKey), []byte(s.config.Auth.APIKey)) != 1 {
 			s.respondWithError(w, http.StatusUnauthorized, "Invalid API key", nil)
 			return
 		}
@@ -188,13 +196,18 @@ func (s *Server) initResourceMapper() {
 func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins in development
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		// Any origin may call the API. That is safe here because the key
+		// travels in a header the page has to set itself: there are no
+		// cookies or other ambient credentials for another site to ride on.
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+		w.Header().Set("Access-Control-Max-Age", "600")
 
-		// If this is a preflight request, respond with 200 OK
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
+		// Preflight: answer it here. setupRoutes registers an OPTIONS route so
+		// that this middleware is reached at all.
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 

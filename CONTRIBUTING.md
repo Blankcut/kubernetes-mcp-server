@@ -108,19 +108,25 @@ kubernetes-mcp-server/
 │   ├── pkg/              # Public libraries
 │   ├── tests/            # Test files
 │   └── config.yaml       # Configuration
-├── helm/                 # Helm charts
-├── k8s/                  # Kubernetes manifests
-└── docs/                 # Documentation
+├── helm/                 # Helm chart
+└── postman/              # Postman collection
 ```
+
+User documentation lives at [docs.blankcut.com/kubernetes-mcp-server](https://docs.blankcut.com/kubernetes-mcp-server/)
+(source: [Blankcut/blankcut-docs](https://github.com/Blankcut/blankcut-docs)). Update it in the same
+change as anything a user would notice: an endpoint, a config key, a default, an error message.
 
 ## Release Process
 
 Releases are automated through GitHub Actions. To create a release:
 
-1. Update CHANGELOG.md
-2. Create and push a tag: `git tag -a v0.1.0 -m "Release v0.1.0"`
-3. Push the tag: `git push origin v0.1.0`
-4. GitHub Actions will build and publish the release
+1. Move the `[Unreleased]` entries in CHANGELOG.md under a `## [X.Y.Z] - YYYY-MM-DD` heading.
+2. Set `version` and `appVersion` in `helm/kubernetes-mcp-server/Chart.yaml` to `X.Y.Z`. The release
+   workflow refuses to publish a tag the chart's `appVersion` doesn't match, because that is the
+   image a default `helm install` runs.
+3. Create and push the tag: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
+4. GitHub Actions builds and publishes the binaries and the Docker image. Check that the run is
+   fully green.
 
 ## Questions?
 

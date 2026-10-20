@@ -20,7 +20,6 @@ gitlab:
   url: "https://gitlab.com"
   authToken: "dev-gitlab-token"
   apiVersion: "v4"
-  projectPath: "dev/test-project"
 
 claude:
   apiKey: "dev-claude-api-key"
