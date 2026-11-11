@@ -39,8 +39,41 @@
 
 It only reads: nothing it does changes Kubernetes, ArgoCD or GitLab.
 
-It is a **REST API**. Despite the name it does not implement the Model Context Protocol's JSON-RPC
-transport, so MCP clients such as Claude Desktop can't connect to it directly; call it over HTTP.
+It is a **REST API**, and since 1.5.0 also a **Model Context Protocol server**: an MCP client can
+connect to `/mcp` and call its cluster reads as tools. See [Connect an MCP client](#connect-an-mcp-client).
+
+## Connect an MCP client
+
+The server speaks MCP over Streamable HTTP at `/mcp`, with the same API key as the REST API
+(`X-API-Key`, or `Authorization: Bearer`). In Claude Code:
+
+```bash
+claude mcp add --transport http kubernetes https://your-server.example.com/mcp \
+  --header "X-API-Key: $KUBERNETES_MCP_API_KEY"
+```
+
+Any client that supports Streamable HTTP with a custom header connects the same way. There is no
+stdio transport yet, so a client that can only launch a local process (Claude Desktop without a
+remote connector) can't use it directly.
+
+| Tool | What it returns |
+|---|---|
+| `troubleshoot_resource` | One resource's state, events, related objects, deployment history, and the issues the server's own checks found. Start here when something is failing. |
+| `list_namespaces` | The cluster's namespaces. |
+| `list_resources` | Resources of one kind, each with a one-line status. |
+| `get_resource` | One resource's full object. |
+| `get_events` | Recent events in a namespace, optionally for one resource. |
+| `namespace_topology` | What exists in a namespace, how it relates, and each resource's health. |
+| `list_argocd_applications`, `get_argocd_application` | Argo CD applications and their sync and health status. |
+
+Every tool only reads. Two things differ from the REST API:
+
+- **No tool calls Claude.** The REST analysis endpoints send what they collect to a model and return
+  its answer. An MCP client is a model, so it gets the collected facts and reasons for itself, and a
+  tool call costs you nothing in model usage.
+- **Secret values are never returned.** `get_resource` on a Secret keeps the key names and replaces
+  each value. The chart's default role can't read Secrets at all; this covers a server you run with
+  wider access.
 
 ## Quick start
 

@@ -62,6 +62,7 @@ func NewServer(
 	// Set up routes
 	server.setupRoutes()
 	server.setupNamespaceRoutes()
+	server.setupMCPRoute()
 
 	return server
 }
