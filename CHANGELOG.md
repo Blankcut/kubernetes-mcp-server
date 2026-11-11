@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-10
+
+### Added
+- **The server speaks the Model Context Protocol.** For four minor versions it took its name from
+  the protocol without implementing it. An MCP client (Claude Code, Cursor and others) can now
+  connect to `/mcp` over Streamable HTTP, with the same API key as the REST API, and call the
+  cluster reads as tools: `troubleshoot_resource`, `list_namespaces`, `list_resources`,
+  `get_resource`, `get_events`, `namespace_topology`, and, when ArgoCD is configured,
+  `list_argocd_applications` and `get_argocd_application`. The REST API is unchanged.
+  - Every tool only reads, and none of them calls Claude: the client is a model and does its own
+    reasoning over the facts, so a tool call costs nothing in model usage.
+  - `get_resource` never returns a Secret's values (key names are kept), and drops the
+    `last-applied-configuration` annotation and `managedFields` from every object.
+  - The endpoint is stateless, so any replica answers any request.
+  - There is no stdio transport yet.
+
 ## [1.4.0] - 2026-10-20
 
 ### Fixed

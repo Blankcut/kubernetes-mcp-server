@@ -2,10 +2,10 @@ apiVersion: v2
 name: kubernetes-mcp-server
 description: A Helm chart for Kubernetes MCP Server with ArgoCD and GitLab integration
 type: application
-version: 1.4.0
+version: 1.5.0
 # The image an install runs when image.tag is unset. The release workflow
 # refuses to publish a tag this doesn't match.
-appVersion: "1.4.0"
+appVersion: "1.5.0"
 keywords:
   - kubernetes
   - mcp
