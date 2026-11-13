@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/claude"
 	k8s "github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/k8s"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/models"
 )
@@ -152,7 +153,7 @@ func (h *ProtocolHandler) analyzeNamespace(ctx context.Context, namespace string
 		"systemPromptLength", len(systemPrompt),
 		"analysisPromptLength", len(analysisPrompt))
 
-	analysis, err := h.claudeProtocol.GetCompletion(ctx, systemPrompt, analysisPrompt)
+	analysis, err := h.claudeProtocol.GetCompletion(claude.WithAnalysis(ctx, claude.AnalysisNamespace), systemPrompt, analysisPrompt)
 	if err != nil {
 		// The deterministic findings stand on their own; losing Claude should
 		// cost the narrative, not the whole answer.

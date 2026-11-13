@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Model usage can be reported as OpenTelemetry spans.** Set `OTEL_EXPORTER_OTLP_ENDPOINT` (or
+  `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) and each call the server makes to Claude is sent to that
+  OTLP/HTTP receiver as one span in the GenAI semantic conventions: the model asked and the model
+  that answered, input, output and cached token counts, duration, `error.type` when the call failed,
+  and which analysis it was for (`kubernetes_mcp_server.analysis`). `OTEL_EXPORTER_OTLP_HEADERS`
+  carries a token if the receiver wants one; `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` are
+  read too, and in a pod the namespace and pod name are filled in.
+  - Off unless an endpoint is set. Nothing changes for an existing install.
+  - A span never carries a prompt, a response, or anything read from the cluster.
+  - Reporting cannot slow or fail a request. Spans are queued and sent in the background; when the
+    receiver is down they are dropped, with at most one warning a minute, and header values are
+    never logged.
+  - Spans are sent as OTLP/HTTP JSON. OTLP over gRPC is not supported.
+
 ## [1.5.0] - 2026-11-10
 
 ### Added
