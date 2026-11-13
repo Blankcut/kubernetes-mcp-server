@@ -180,5 +180,20 @@ readinessProbe:
 extraEnv: []
 #  - name: LOG_LEVEL
 #    value: debug
+#
+# To report each Claude call as an OpenTelemetry span (model, token counts,
+# duration; never prompts or cluster data), name an OTLP/HTTP receiver. Off
+# while no endpoint is set.
+#  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+#    value: http://otel-collector.observability:4318
+# If the receiver wants a token, keep it in a Secret and let Kubernetes put
+# it into the header: $(NAME) expands a variable defined earlier in the list.
+#  - name: OTLP_TOKEN
+#    valueFrom:
+#      secretKeyRef:
+#        name: otlp-credentials
+#        key: token
+#  - name: OTEL_EXPORTER_OTLP_HEADERS
+#    value: "Authorization=Bearer $(OTLP_TOKEN)"
 extraVolumes: []
 extraVolumeMounts: []

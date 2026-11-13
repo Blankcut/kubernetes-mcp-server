@@ -36,6 +36,8 @@
   Applications, so a lost RBAC grant shows up as an error rather than an empty list.
 - **Authenticates to Claude with an API key or Workload Identity Federation**, so it can run
   without a long-lived key.
+- **Reports its model usage as OpenTelemetry spans**, if you give it an OTLP endpoint: one span per
+  Claude call, with the model and the token counts. See [Report model usage](#report-model-usage).
 
 It only reads: nothing it does changes Kubernetes, ArgoCD or GitLab.
 
@@ -116,6 +118,41 @@ including checksum verification.
 | Docker | [`blankcut/kubernetes-mcp-server`](https://hub.docker.com/r/blankcut/kubernetes-mcp-server) (`linux/amd64`, `linux/arm64`); mount a config at `/app/config.yaml`. |
 | Binary | [Releases](https://github.com/Blankcut/kubernetes-mcp-server/releases), with `checksums.txt`. |
 | Source | Go 1.26+: `cd kubernetes-claude-mcp && go build -o mcp-server ./cmd/server`. |
+
+## Report model usage
+
+Each call the server makes to Claude can be reported as one OpenTelemetry span, in the
+[GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/), to any OTLP/HTTP
+receiver: an OpenTelemetry Collector, or a backend that takes OTLP directly. It is off until an
+endpoint is set, with the standard variables:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318        # /v1/traces is appended
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer $OTLP_TOKEN" # if the receiver wants one
+```
+
+A span says which model was asked and which answered, how many tokens the call used
+(`gen_ai.usage.input_tokens`, which includes cached tokens, `gen_ai.usage.output_tokens`, and the
+cache read and write counts), how long it took, whether it failed (`error.type`), and which analysis
+it was for (`kubernetes_mcp_server.analysis`: `resource`, `namespace`, `troubleshoot` or
+`merge_request`). It never carries a prompt, a response, or anything read from the cluster.
+
+| Variable | |
+|---|---|
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | The full URL to send to, used as given. Wins over the next one. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | A base URL; `/v1/traces` is appended. |
+| `OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_EXPORTER_OTLP_TRACES_HEADERS` | `name=value` pairs, comma-separated, sent with every export. Values are never logged. |
+| `OTEL_EXPORTER_OTLP_TIMEOUT`, `OTEL_EXPORTER_OTLP_TRACES_TIMEOUT` | Milliseconds for one export. Default `5000`. |
+| `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` | How the server describes itself. `service.name` defaults to `kubernetes-mcp-server`; in a pod, `k8s.namespace.name` and `k8s.pod.name` are filled in unless you set them. |
+| `OTEL_SDK_DISABLED` | `true` turns reporting off whatever else is set. |
+
+Reporting cannot slow or fail a request: spans are queued and sent in the background, and if the
+receiver is down they are dropped, with at most one warning a minute in the log. Spans are sent as
+OTLP/HTTP JSON; OTLP over gRPC (`OTEL_EXPORTER_OTLP_PROTOCOL=grpc`, port 4317) is not supported, so
+point it at the receiver's HTTP port. MCP tool calls make no model call and report nothing.
+
+With the Helm chart, set the variables through `extraEnv`; `values.yaml` shows how to take the
+token from a Secret.
 
 ## Development
 

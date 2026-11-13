@@ -16,6 +16,8 @@ import (
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/gitlab"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/k8s"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/mcp"
+	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/mcptransport"
+	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/telemetry"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/config"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
 )
@@ -119,6 +121,13 @@ func main() {
 	}
 	claudeClient := claude.NewClient(claudeConfig, logger.Named("claude"))
 
+	// Report each model call as an OpenTelemetry span, when an OTLP endpoint is
+	// configured (OTEL_EXPORTER_OTLP_ENDPOINT and friends). Off otherwise.
+	modelCalls := telemetry.FromEnv(logger.Named("telemetry"), mcptransport.Version)
+	if modelCalls != nil {
+		claudeClient.SetCallReporter(modelCalls)
+	}
+
 	// Initialize GitOps correlator
 	logger.Info("Initializing GitOps correlator")
 	gitOpsCorrelator := correlator.NewGitOpsCorrelator(
@@ -176,8 +185,15 @@ func main() {
 
 	// Start server
 	logger.Info("Starting MCP server", "address", cfg.Server.Address)
-	if err := server.Start(ctx); err != nil {
-		logger.Fatal("Server error", "error", err)
+	serveErr := server.Start(ctx)
+
+	// Send the model calls still queued before the process exits.
+	flushCtx, flushCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	modelCalls.Shutdown(flushCtx)
+	flushCancel()
+
+	if serveErr != nil {
+		logger.Fatal("Server error", "error", serveErr)
 	}
 
 	logger.Info("Server shutdown complete")

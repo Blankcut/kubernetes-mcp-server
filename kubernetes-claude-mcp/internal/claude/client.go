@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/internal/telemetry"
 	"github.com/Blankcut/kubernetes-mcp-server/kubernetes-claude-mcp/pkg/logging"
 )
 
@@ -24,6 +27,21 @@ type Client struct {
 	// federation is non-nil only when Workload Identity Federation is
 	// configured. When nil, requests authenticate with apiKey exactly as before.
 	federation *federationTokenSource
+	// reporter is nil unless model call reporting is configured. It is told
+	// about each call after the call has finished, and cannot affect it.
+	reporter CallReporter
+}
+
+// CallReporter is told about each Messages API call once it has finished:
+// which model, how many tokens, how long. *telemetry.Reporter is one.
+type CallReporter interface {
+	ReportModelCall(call *telemetry.ModelCall)
+}
+
+// SetCallReporter makes the client report each model call to r. Call it
+// before the client is used; passing nil turns reporting off.
+func (c *Client) SetCallReporter(r CallReporter) {
+	c.reporter = r
 }
 
 // Message represents a message in the Claude conversation
@@ -60,6 +78,10 @@ type CompletionResponse struct {
 type Usage struct {
 	InputTokens  int `json:"input_tokens"`
 	OutputTokens int `json:"output_tokens"`
+	// Tokens read from and written to the prompt cache. InputTokens does not
+	// include them.
+	CacheReadInputTokens     int `json:"cache_read_input_tokens"`
+	CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
 }
 
 // NewClient creates a new Claude API client
@@ -161,25 +183,31 @@ func (c *Client) Complete(ctx context.Context, messages []Message) (string, erro
 		req.Header.Set("x-api-key", c.apiKey)
 	}
 
+	start := time.Now()
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		c.reportCall(ctx, start, nil, transportErrorType(err))
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		c.reportCall(ctx, start, nil, transportErrorType(err))
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		c.reportCall(ctx, start, nil, apiErrorType(resp.StatusCode, body))
 		return "", fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, body)
 	}
 
 	var completionResponse CompletionResponse
 	if err := json.Unmarshal(body, &completionResponse); err != nil {
+		c.reportCall(ctx, start, nil, "invalid_response")
 		return "", fmt.Errorf("failed to unmarshal response: %w", err)
 	}
+	c.reportCall(ctx, start, &completionResponse, "")
 
 	// Extract text from content array
 	var responseText string
@@ -195,4 +223,87 @@ func (c *Client) Complete(ctx context.Context, messages []Message) (string, erro
 		"outputTokens", completionResponse.Usage.OutputTokens)
 
 	return responseText, nil
+}
+
+// reportCall tells the reporter about one finished call. It sends counts,
+// names and times: never the prompt, never the response text. Nothing it does
+// can reach the caller, including a panic in a reporter.
+func (c *Client) reportCall(ctx context.Context, start time.Time, resp *CompletionResponse, errorType string) {
+	if c.reporter == nil {
+		return
+	}
+	defer func() { _ = recover() }()
+
+	call := &telemetry.ModelCall{
+		Start:        start,
+		End:          time.Now(),
+		Provider:     "anthropic",
+		RequestModel: c.modelID,
+		ErrorType:    errorType,
+		Analysis:     analysisFrom(ctx),
+	}
+	if resp != nil {
+		call.ResponseModel = resp.Model
+		call.ResponseID = resp.ID
+		call.Usage = &telemetry.Usage{
+			InputTokens:      int64(resp.Usage.InputTokens),
+			OutputTokens:     int64(resp.Usage.OutputTokens),
+			CacheReadTokens:  int64(resp.Usage.CacheReadInputTokens),
+			CacheWriteTokens: int64(resp.Usage.CacheCreationInputTokens),
+		}
+	}
+	c.reporter.ReportModelCall(call)
+}
+
+// transportErrorType names why a request got no usable response.
+func transportErrorType(err error) string {
+	switch {
+	case errors.Is(err, context.Canceled):
+		return "canceled"
+	case errors.Is(err, context.DeadlineExceeded):
+		return "timeout"
+	}
+	var timeout interface{ Timeout() bool }
+	if errors.As(err, &timeout) && timeout.Timeout() {
+		return "timeout"
+	}
+	return "connection_error"
+}
+
+// apiErrorType is the API's own error type ("rate_limit_error",
+// "overloaded_error") when the body carries one, else the HTTP status code.
+// Only the type is read: an error's message can quote the request.
+func apiErrorType(status int, body []byte) string {
+	var parsed struct {
+		Error struct {
+			Type string `json:"type"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(body, &parsed); err == nil && parsed.Error.Type != "" {
+		return parsed.Error.Type
+	}
+	return strconv.Itoa(status)
+}
+
+type analysisKey struct{}
+
+// The analyses the server asks the model for. A model call is reported with
+// the one it was made for, so usage can be grouped by it.
+const (
+	AnalysisResource     = "resource"
+	AnalysisMergeRequest = "merge_request"
+	AnalysisTroubleshoot = "troubleshoot"
+	AnalysisNamespace    = "namespace"
+)
+
+// WithAnalysis marks the model calls made with the returned context as part of
+// the named analysis. Pass one of the Analysis constants: the name is sent to
+// the telemetry endpoint, so it must never be text taken from a request.
+func WithAnalysis(ctx context.Context, analysis string) context.Context {
+	return context.WithValue(ctx, analysisKey{}, analysis)
+}
+
+func analysisFrom(ctx context.Context) string {
+	analysis, _ := ctx.Value(analysisKey{}).(string)
+	return analysis
 }

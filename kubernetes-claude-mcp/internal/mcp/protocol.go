@@ -196,7 +196,11 @@ func (h *ProtocolHandler) ProcessRequest(ctx context.Context, request *models.MC
 		"systemPromptLength", len(systemPrompt),
 		"userPromptLength", len(userPrompt))
 
-	analysis, err := h.claudeProtocol.GetCompletion(ctx, systemPrompt, userPrompt)
+	analysisKind := claude.AnalysisResource
+	if request.Action == "queryMergeRequest" {
+		analysisKind = claude.AnalysisMergeRequest
+	}
+	analysis, err := h.claudeProtocol.GetCompletion(claude.WithAnalysis(ctx, analysisKind), systemPrompt, userPrompt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get completion from Claude: %w", err)
 	}
@@ -258,7 +262,7 @@ func (h *ProtocolHandler) ProcessTroubleshootRequest(ctx context.Context, reques
 		"systemPromptLength", len(systemPrompt),
 		"userPromptLength", len(userPrompt))
 
-	analysis, err := h.claudeProtocol.GetCompletion(ctx, systemPrompt, userPrompt)
+	analysis, err := h.claudeProtocol.GetCompletion(claude.WithAnalysis(ctx, claude.AnalysisTroubleshoot), systemPrompt, userPrompt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get completion for troubleshoot request: %w", err)
 	}
