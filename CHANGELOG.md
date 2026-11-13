@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-12
+
 ### Added
 - **Model usage can be reported as OpenTelemetry spans.** Set `OTEL_EXPORTER_OTLP_ENDPOINT` (or
   `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) and each call the server makes to Claude is sent to that
