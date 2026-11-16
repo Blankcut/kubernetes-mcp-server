@@ -117,14 +117,14 @@ git push origin v0.1.0
 After the workflow completes:
 
 1. **Check Docker Hub**: https://hub.docker.com/r/blankcut/kubernetes-mcp-server/tags
-   - You should see tags: `v0.1.0`, `0.1`, `0`, `latest`
+   - You should see tags: `0.1.0`, `0.1`, `0`, `latest` (image tags have no leading `v`)
 
 2. **Check GitHub Releases**: https://github.com/Blankcut/kubernetes-mcp-server/releases
    - You should see a new release with binaries
 
 3. **Test pulling the image**:
    ```bash
-   docker pull blankcut/kubernetes-mcp-server:v0.1.0
+   docker pull blankcut/kubernetes-mcp-server:0.1.0
    docker pull blankcut/kubernetes-mcp-server:latest
    ```
 

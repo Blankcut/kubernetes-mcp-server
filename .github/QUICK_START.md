@@ -31,7 +31,7 @@ git push origin v0.1.0
 
 This will:
 - Build multi-arch Docker images (AMD64 + ARM64)
-- Push to Docker Hub: `blankcut/kubernetes-mcp-server:v0.1.0`
+- Push to Docker Hub: `blankcut/kubernetes-mcp-server:0.1.0` (image tags have no leading `v`)
 - Create GitHub Release with binaries
 
 ## 4. Test the Docker Image
@@ -54,13 +54,13 @@ docker run --rm blankcut/kubernetes-mcp-server:latest --help
 - ✅ Multi-arch Docker images (AMD64 + ARM64)
 - ✅ Docker Hub publishing
 - ✅ GitHub Release with binaries
-- ✅ SBOM generation
-- ✅ Vulnerability scanning
+- ✅ SBOM generation, attached to the release
+- ✅ Vulnerability scanning of the published image
 
 ## Docker Image Tags
 
 After release, your images will be available as:
-- `blankcut/kubernetes-mcp-server:v0.1.0` (specific version)
+- `blankcut/kubernetes-mcp-server:0.1.0` (specific version)
 - `blankcut/kubernetes-mcp-server:0.1` (major.minor)
 - `blankcut/kubernetes-mcp-server:0` (major)
 - `blankcut/kubernetes-mcp-server:latest` (latest release)
