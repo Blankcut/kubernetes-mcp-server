@@ -16,6 +16,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release notes name an image tag that exists.** They said
   `docker pull docker.io/blankcut/kubernetes-mcp-server:v1.6.0`; the tag is `1.6.0`.
 
+### Security
+- **Dependencies with known vulnerabilities are updated.** These are the nine findings of the first
+  scan of a published image (1.6.0). The fixes are in the next release's image and binaries; 1.6.0
+  and earlier keep the old versions.
+  - `golang.org/x/net` 0.57.0 to 0.62.0. The server uses this module's HTTP/2 client to talk to the
+    Kubernetes API server, and that is the only place any of these can be reached.
+    CVE-2026-78669 lets an HTTP/2 peer make the other side spend CPU on a flood of SETTINGS frames;
+    here the peer is the API server the server was configured to use. CVE-2026-78660 is in the same
+    client and matters only to a program that forwards the responses it receives, which the server
+    does not. CVE-2026-78659, CVE-2026-78663 and CVE-2026-97032 need an HTTP/2 server built on this
+    module; the server's own listener is the standard library's, speaking HTTP/1.1.
+    CVE-2026-78661 and CVE-2026-97045 are in the module's HTML parser, which is not compiled into
+    the server.
+  - `golang.org/x/text` 0.40.0 to 0.44.0 for CVE-2026-56851, a panic in `secure/precis`. That
+    package is not compiled into the server either.
+  - `zlib` 1.3.2-r1 to 1.4-r0 in the container image for CVE-2026-4738. The `alpine:3.24` base still
+    ships the older package, so the image now upgrades it by name. The server binary is static and
+    does not use zlib; in the image it is there for `curl` and the AWS CLI.
+  - `golang.org/x/sync`, `golang.org/x/sys` and `golang.org/x/term` move with them (to 0.25.0,
+    0.49.0 and 0.47.0).
+
 ## [1.6.0] - 2026-11-12
 
 ### Added

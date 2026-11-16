@@ -23,7 +23,13 @@ FROM alpine:3.24
 
 # Install AWS CLI from the Alpine community repo. A pip install is rejected on
 # Alpine 3.24 (Python 3.12) with PEP 668 "externally-managed-environment".
-RUN apk add --no-cache curl unzip bash aws-cli
+#
+# zlib is upgraded by name: the alpine:3.24 tag still ships 1.3.2-r1
+# (CVE-2026-4738, fixed in 1.4-r0), and `apk add` keeps an installed package
+# that already satisfies what it installs, so a rebuild alone does not pick up
+# the fix. Remove the upgrade once the base tag carries zlib 1.4 or newer.
+RUN apk add --no-cache curl unzip bash aws-cli && \
+    apk upgrade --no-cache zlib
 
 # Create non-root user
 RUN addgroup -g 1001 mcp && \
