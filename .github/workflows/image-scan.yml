@@ -1,0 +1,142 @@
+name: Image SBOM and Scan
+
+# Writes a software bill of materials for a published image and scans it for
+# known vulnerabilities.
+#
+# The release workflow calls this for the image it has just pushed. It is a
+# workflow of its own for two reasons:
+#
+#   - It runs third-party scanners. In the build job they ran next to the
+#     registry logins and the cloud identity token; here they get a token that
+#     can read the repository and write code scanning results, nothing else.
+#   - It can be run against any published image without cutting a release
+#     (Actions > Image SBOM and Scan > Run workflow), and a pull request that
+#     changes this file runs it against `latest`. No release up to v1.6.0 had
+#     an SBOM or a scan: both steps asked for the tag `vX.Y.Z` while the image
+#     is published as `X.Y.Z`, and both were allowed to fail, so every run
+#     stayed green.
+#
+# A failure here fails the run. It cannot block a release: the image and the
+# GitHub Release are already out by the time this starts.
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: 'Image to scan, by digest or by a tag that exists'
+        required: true
+        type: string
+      release-tag:
+        description: 'Attach the SBOM to this GitHub Release (empty: do not attach)'
+        required: false
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'Image to scan (name@sha256:... or name:tag)'
+        required: true
+        type: string
+        default: 'docker.io/blankcut/kubernetes-mcp-server:latest'
+      release-tag:
+        description: 'Attach the SBOM to this GitHub Release, for example v1.6.0 (empty: do not attach)'
+        required: false
+        type: string
+        default: ''
+  pull_request:
+    paths:
+      - '.github/workflows/image-scan.yml'
+
+env:
+  # A pull request has no inputs; it scans the newest published image.
+  IMAGE: ${{ inputs.image || 'docker.io/blankcut/kubernetes-mcp-server:latest' }}
+
+jobs:
+  scan:
+    name: Generate SBOM and scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload the scan results to code scanning
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # An empty digest would otherwise reach the scanners as "name@" and fail
+      # with an error about parsing, not about what went wrong.
+      - name: Check the image reference
+        run: |
+          case "$IMAGE" in
+            ''|*@|*:)
+              echo "::error::No complete image reference to scan (got '$IMAGE'). The build did not report a digest."
+              exit 1
+              ;;
+          esac
+          echo "Scanning $IMAGE"
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.IMAGE }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          # Uploaded and attached below, by name, so the two jobs agree on it.
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom
+          path: sbom.spdx.json
+          if-no-files-found: error
+
+      # Pinned to a commit. The other actions here follow a major version tag;
+      # this one followed a branch (`master`), so each run took whatever was
+      # newest. A branch or a tag can be moved to different code and a commit
+      # cannot. Dependabot keeps the pin and the version comment current.
+      #
+      # It reports what it finds and does not fail on a finding: a new CVE in a
+      # base image must not turn a release run red after the fact.
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Check the scan wrote its results
+        run: |
+          test -s trivy-results.sarif || { echo "::error::The scan produced no results file."; exit 1; }
+          echo "Findings: $(jq '[.runs[].results[]] | length' trivy-results.sarif)"
+
+      # Not on a pull request: that run only checks this workflow still works,
+      # and the image's findings are not something the pull request introduced.
+      - name: Upload scan results to GitHub Security
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-results.sarif'
+          # Kept apart from the source scan in ci.yml, which is also Trivy.
+          category: container-image
+
+  # A job of its own so that only this one, which runs no scanner, holds a
+  # token that can write to a release.
+  attach-sbom:
+    name: Attach SBOM to the release
+    runs-on: ubuntu-latest
+    needs: scan
+    if: ${{ inputs.release-tag != '' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Download SBOM
+        uses: actions/download-artifact@v8
+        with:
+          name: sbom
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: gh release upload "$RELEASE_TAG" sbom.spdx.json --clobber --repo "$GITHUB_REPOSITORY"

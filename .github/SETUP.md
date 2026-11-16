@@ -55,16 +55,26 @@ After adding the secrets, the workflows will be ready to run:
 **What it does**:
 - Builds multi-architecture Docker images (AMD64 + ARM64)
 - Pushes images to Docker Hub with multiple tags:
-  - `blankcut/kubernetes-mcp-server:v1.0.0` (version tag)
+  - `blankcut/kubernetes-mcp-server:1.0.0` (the version; image tags have no leading `v`)
   - `blankcut/kubernetes-mcp-server:1.0` (major.minor)
   - `blankcut/kubernetes-mcp-server:1` (major)
   - `blankcut/kubernetes-mcp-server:latest` (for main branch)
-- Generates Software Bill of Materials (SBOM)
-- Scans images for vulnerabilities
 - Creates GitHub Release with:
   - Compiled binaries for Linux/macOS (AMD64/ARM64)
   - Checksums
   - Release notes
+- Calls the Image SBOM and Scan workflow for the image it pushed
+
+### Image SBOM and Scan Workflow (`.github/workflows/image-scan.yml`)
+**Triggers on**:
+- The release workflow, for the image it has just pushed (named by digest)
+- Manual workflow dispatch, for any published image
+- Pull requests that change the workflow file (scans `latest`, to show the workflow still works)
+
+**What it does**:
+- Generates a Software Bill of Materials (SPDX JSON) and, on a release, attaches it to the GitHub Release as `sbom.spdx.json`
+- Scans the image for known vulnerabilities and uploads the results to the repository's Security tab (not on pull requests)
+- Reports findings without failing on them. A scanner that cannot run does fail the run; the image and the release are already published by then
 
 ## Step 3: Test the CI Workflow
 
@@ -107,14 +117,14 @@ git push origin v0.1.0
 After the workflow completes:
 
 1. **Check Docker Hub**: https://hub.docker.com/r/blankcut/kubernetes-mcp-server/tags
-   - You should see tags: `v0.1.0`, `0.1`, `0`, `latest`
+   - You should see tags: `0.1.0`, `0.1`, `0`, `latest` (image tags have no leading `v`)
 
 2. **Check GitHub Releases**: https://github.com/Blankcut/kubernetes-mcp-server/releases
    - You should see a new release with binaries
 
 3. **Test pulling the image**:
    ```bash
-   docker pull blankcut/kubernetes-mcp-server:v0.1.0
+   docker pull blankcut/kubernetes-mcp-server:0.1.0
    docker pull blankcut/kubernetes-mcp-server:latest
    ```
 
