@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **A release now has a software bill of materials and a vulnerability scan.** No release up to
+  1.6.0 had either: the release workflow asked both tools for the image tag `vX.Y.Z`, while images
+  are tagged `X.Y.Z`, and let both fail without failing the run. They now run against the digest of
+  the image the release pushed. The SBOM (SPDX JSON) is attached to the GitHub Release as
+  `sbom.spdx.json`, and a scanner that cannot run turns the run red.
+- **Release notes name an image tag that exists.** They said
+  `docker pull docker.io/blankcut/kubernetes-mcp-server:v1.6.0`; the tag is `1.6.0`.
+
 ## [1.6.0] - 2026-11-12
 
 ### Added
