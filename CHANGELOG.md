@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-11-16
+
 ### Fixed
 - **A release now has a software bill of materials and a vulnerability scan.** No release up to
   1.6.0 had either: the release workflow asked both tools for the image tag `vX.Y.Z`, while images
@@ -18,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - **Dependencies with known vulnerabilities are updated.** These are the nine findings of the first
-  scan of a published image (1.6.0). The fixes are in the next release's image and binaries; 1.6.0
+  scan of a published image (1.6.0). The fixes are in this release's image and binaries; 1.6.0
   and earlier keep the old versions.
   - `golang.org/x/net` 0.57.0 to 0.62.0. The server uses this module's HTTP/2 client to talk to the
     Kubernetes API server, and that is the only place any of these can be reached.
